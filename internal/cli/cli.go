@@ -4,10 +4,14 @@ import (
 	"database/sql"
 	"fmt"
 	"os"
+	"path/filepath"
 	"strconv"
+	"strings"
 	"time"
 
+	"github.com/vasilisp/velora/internal/data"
 	"github.com/vasilisp/velora/internal/db"
+	"github.com/vasilisp/velora/internal/openai"
 	"github.com/vasilisp/velora/internal/util"
 )
 
@@ -79,6 +83,47 @@ func showLastActivities(dbh *sql.DB) {
 	}
 }
 
+func nextWorkout(dbh *sql.DB) {
+	activities, err := db.LastActivities(dbh, 10)
+	if err != nil {
+		util.Fatalf("error getting last activities: %v\n", err)
+	}
+
+	apiKey := os.Getenv("OPENAI_API_KEY")
+	if apiKey == "" {
+		util.Fatalf("OPENAI_API_KEY environment variable not set\n")
+	}
+
+	client := openai.NewClient(apiKey)
+
+	var activityStrings []string
+	for _, activity := range activities {
+		activityStr := fmt.Sprintf("%s: %s for %s covering %s",
+			activity.Timestamp.Format("Jan 2"),
+			activity.Sport,
+			formatDuration(activity.Duration),
+			formatDistance(activity.Distance))
+		activityStrings = append(activityStrings, activityStr)
+	}
+
+	prefsPath := filepath.Join(os.Getenv("HOME"), ".velora", "velora.prefs")
+	prefsContent := ""
+	if prefs, err := os.ReadFile(prefsPath); err == nil {
+		prefsContent = fmt.Sprintf("My workout preferences:\n%s\n", string(prefs))
+	}
+
+	userMessage := fmt.Sprintf("%sHere are my recent activities:\n%s\n\nWhat should I do for my next workout?",
+		prefsContent,
+		strings.Join(activityStrings, "\n"))
+
+	response, err := client.AskGPT(data.NextPrompt, userMessage)
+	if err != nil {
+		util.Fatalf("error getting workout recommendation: %v\n", err)
+	}
+
+	fmt.Println(response)
+}
+
 func Main() {
 	dbh, err := db.Init()
 	if err != nil {
@@ -92,5 +137,9 @@ func Main() {
 
 	if len(os.Args) > 1 && os.Args[1] == "recent" {
 		showLastActivities(dbh)
+	}
+
+	if len(os.Args) > 1 && os.Args[1] == "next" {
+		nextWorkout(dbh)
 	}
 }
