@@ -60,40 +60,22 @@ func formatDistance(meters int) string {
 }
 
 func showLastActivities(dbh *sql.DB) {
-	rows, err := dbh.Query(`
-		SELECT timestamp, duration, duration_total, sport, distance 
-		FROM activities 
-		ORDER BY timestamp DESC 
-		LIMIT 10`)
-	if err != nil {
-		util.Fatalf("error querying activities: %v\n", err)
-	}
-	defer rows.Close()
-
-	fmt.Println("\nRecent activities:")
+	fmt.Println("recent activities:")
 	fmt.Println("--------------------------------------------------")
 	fmt.Printf("%-20s %-8s %-10s %s\n", "Date", "Sport", "Time", "Distance")
 	fmt.Println("--------------------------------------------------")
 
-	for rows.Next() {
-		var timestamp time.Time
-		var duration, durationTotal, distance int
-		var sportStr string
-
-		err := rows.Scan(&timestamp, &duration, &durationTotal, &sportStr, &distance)
-		if err != nil {
-			util.Fatalf("error scanning row: %v\n", err)
-		}
-
-		fmt.Printf("%-20s %-8s %-10s %s\n",
-			timestamp.Format("Jan 2, 15:04"),
-			sportStr,
-			formatDuration(duration),
-			formatDistance(distance))
+	activities, err := db.LastActivities(dbh, 10)
+	if err != nil {
+		util.Fatalf("error getting last activities: %v\n", err)
 	}
 
-	if err = rows.Err(); err != nil {
-		util.Fatalf("error iterating rows: %v\n", err)
+	for _, activity := range activities {
+		fmt.Printf("%-20s %-8s %-10s %s\n",
+			activity.Timestamp.Format("Jan 2, 15:04"),
+			activity.Sport,
+			formatDuration(activity.Duration),
+			formatDistance(activity.Distance))
 	}
 }
 

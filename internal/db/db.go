@@ -46,6 +46,14 @@ type Activity struct {
 	sport         Sport
 }
 
+type ActivityRead struct {
+	Timestamp     time.Time
+	Duration      int
+	DurationTotal int
+	Distance      int
+	Sport         Sport
+}
+
 func NewActivity(timestamp time.Time, duration int, durationTotal int, distance int, sport Sport) (*Activity, error) {
 	if duration <= 0 {
 		return nil, fmt.Errorf("duration must be positive")
@@ -61,6 +69,43 @@ func NewActivity(timestamp time.Time, duration int, durationTotal int, distance 
 	}
 
 	return &Activity{timestamp: timestamp, duration: duration, durationTotal: durationTotal, distance: distance, sport: sport}, nil
+}
+
+func LastActivities(db *sql.DB, limit int) ([]ActivityRead, error) {
+	util.Assert(limit > 0, "LastActivities non-positive limit")
+	util.Assert(db != nil, "LastActivities nil db")
+
+	rows, err := db.Query(`
+		SELECT timestamp, duration, duration_total, sport, distance
+		FROM activities
+		ORDER BY timestamp DESC
+		LIMIT ?`, limit)
+	if err != nil {
+		return nil, fmt.Errorf("error querying activities: %v", err)
+	}
+	defer rows.Close()
+
+	activities := []ActivityRead{}
+	for rows.Next() {
+		var sportStr string
+		var activity ActivityRead
+		err := rows.Scan(&activity.Timestamp, &activity.Duration, &activity.DurationTotal, &sportStr, &activity.Distance)
+		if err != nil {
+			return nil, fmt.Errorf("error scanning activity: %v", err)
+		}
+		sport, err := SportFromString(sportStr)
+		if err != nil {
+			return nil, fmt.Errorf("error parsing sport: %v", err)
+		}
+		activity.Sport = sport
+		activities = append(activities, activity)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("error iterating activities: %v", err)
+	}
+
+	return activities, nil
 }
 
 func Init() (*sql.DB, error) {
