@@ -1,8 +1,10 @@
 package cli
 
 import (
+	"bytes"
 	"database/sql"
 	"fmt"
+	"html/template"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -83,18 +85,32 @@ func showLastActivities(dbh *sql.DB) {
 	}
 }
 
-func nextWorkout(dbh *sql.DB) {
+func systemPromptNext() (string, error) {
+	fsys, err := data.PromptFS()
+	if err != nil {
+		util.Fatalf("error getting prompt FS: %v\n", err)
+	}
+
+	t, err := template.ParseFS(fsys, "header", "next")
+	if err != nil {
+		util.Fatalf("error parsing template: %v\n", err)
+	}
+
+	var systemPrompt bytes.Buffer
+	if err := t.ExecuteTemplate(&systemPrompt, "next", nil); err != nil {
+		util.Fatalf("error executing template: %v\n", err)
+	}
+
+	return systemPrompt.String(), nil
+}
+
+func userPromptNext(dbh *sql.DB) (string, error) {
+	util.Assert(dbh != nil, "userPromptNext nil dbh")
+
 	activities, err := db.LastActivities(dbh, 10)
 	if err != nil {
 		util.Fatalf("error getting last activities: %v\n", err)
 	}
-
-	apiKey := os.Getenv("OPENAI_API_KEY")
-	if apiKey == "" {
-		util.Fatalf("OPENAI_API_KEY environment variable not set\n")
-	}
-
-	client := openai.NewClient(apiKey)
 
 	var activityStrings []string
 	for _, activity := range activities {
@@ -112,11 +128,34 @@ func nextWorkout(dbh *sql.DB) {
 		prefsContent = fmt.Sprintf("My workout preferences:\n%s\n", string(prefs))
 	}
 
-	userMessage := fmt.Sprintf("%sHere are my recent activities:\n%s\n\nWhat should I do for my next workout?",
+	userPrompt := fmt.Sprintf("%sHere are my recent activities:\n%s\n\nWhat should I do for my next workout?",
 		prefsContent,
 		strings.Join(activityStrings, "\n"))
 
-	response, err := client.AskGPT(data.NextPrompt, userMessage)
+	return userPrompt, nil
+}
+
+func nextWorkout(dbh *sql.DB) {
+	util.Assert(dbh != nil, "nextWorkout nil dbh")
+
+	apiKey := os.Getenv("OPENAI_API_KEY")
+	if apiKey == "" {
+		util.Fatalf("OPENAI_API_KEY environment variable not set\n")
+	}
+
+	client := openai.NewClient(apiKey)
+
+	userPrompt, err := userPromptNext(dbh)
+	if err != nil {
+		util.Fatalf("error getting user prompt: %v\n", err)
+	}
+
+	systemPrompt, err := systemPromptNext()
+	if err != nil {
+		util.Fatalf("error getting system prompt: %v\n", err)
+	}
+
+	response, err := client.AskGPT(systemPrompt, userPrompt)
 	if err != nil {
 		util.Fatalf("error getting workout recommendation: %v\n", err)
 	}

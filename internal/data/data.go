@@ -1,6 +1,13 @@
 package data
 
-import _ "embed"
+import (
+	"embed"
+	"io/fs"
+)
 
-//go:embed next.prompt
-var NextPrompt string
+//go:embed prompts
+var promptFS embed.FS
+
+func PromptFS() (fs.FS, error) {
+	return fs.Sub(promptFS, "prompts")
+}

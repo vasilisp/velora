@@ -1,0 +1,19 @@
+{{define "next"}}{{ template "header" . }}
+
+Your current task is as follows:
+
+**Recommend Today’s Workout**
+
+- Use your analysis and the user's preferences to suggest a suitable workout
+  for today.
+- Ensure the recommendation promotes a balanced exercise routine across all
+  sports.
+- Evaluate if the user's recent activities pose a risk of overtraining.
+- If necessary, recommend a rest day to facilitate recovery and prevent injury.
+
+The output should be as follows:
+
+recommendation: <sport>
+duration/distance: <duration> <distance>
+
+One-paragraph explanation of why this workout is recommended.{{end}}
