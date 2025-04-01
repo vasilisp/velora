@@ -44,6 +44,8 @@ type Activity struct {
 	durationTotal int
 	distance      int
 	sport         Sport
+	verticalGain  int
+	notes         string
 }
 
 type ActivityRead struct {
@@ -52,9 +54,11 @@ type ActivityRead struct {
 	DurationTotal int
 	Distance      int
 	Sport         Sport
+	VerticalGain  int
+	Notes         string
 }
 
-func NewActivity(timestamp time.Time, duration int, durationTotal int, distance int, sport Sport) (*Activity, error) {
+func NewActivity(timestamp time.Time, duration int, durationTotal int, distance int, sport Sport, verticalGain int, notes string) (*Activity, error) {
 	if duration <= 0 {
 		return nil, fmt.Errorf("duration must be positive")
 	}
@@ -66,6 +70,9 @@ func NewActivity(timestamp time.Time, duration int, durationTotal int, distance 
 	}
 	if sport < Running || sport > Swimming {
 		return nil, fmt.Errorf("invalid sport")
+	}
+	if verticalGain < 0 {
+		return nil, fmt.Errorf("verticalGain must be non-negative")
 	}
 
 	return &Activity{timestamp: timestamp, duration: duration, durationTotal: durationTotal, distance: distance, sport: sport}, nil
@@ -131,16 +138,23 @@ func Init() (*sql.DB, error) {
 		duration INTEGER NOT NULL,
 		duration_total INTEGER NOT NULL,
 		sport TEXT CHECK (sport IN ('running', 'cycling', 'swimming')) NOT NULL,
-		distance INTEGER NOT NULL
+		distance INTEGER NOT NULL,
+		vertical_gain INTEGER,
+		notes TEXT
 	)`)
 	if err != nil {
 		return nil, fmt.Errorf("error creating activities table: %v", err)
 	}
+
 	return db, nil
 }
 
 func InsertActivity(db *sql.DB, activity Activity) error {
-	_, err := db.Exec(`INSERT INTO activities (timestamp, duration, duration_total, sport, distance) VALUES (?, ?, ?, ?, ?)`,
-		activity.timestamp, activity.duration, activity.durationTotal, activity.sport.String(), activity.distance)
+	verticalGain := int64(activity.verticalGain)
+	if verticalGain == 0 {
+		verticalGain = sql.NullInt64{Valid: false}.Int64
+	}
+	_, err := db.Exec(`INSERT INTO activities (timestamp, duration, duration_total, sport, distance, vertical_gain, notes) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+		activity.timestamp, activity.duration, activity.durationTotal, activity.sport.String(), activity.distance, verticalGain, activity.notes)
 	return err
 }

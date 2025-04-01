@@ -38,7 +38,17 @@ func addActivity(dbh *sql.DB, args []string) {
 		util.Fatalf("invalid distance: %s\n", args[2])
 	}
 
-	activity, err := db.NewActivity(time.Now(), duration, duration, distance, sport)
+	verticalGain, err := strconv.Atoi(args[3])
+	if err != nil {
+		util.Fatalf("invalid vertical gain: %s\n", args[3])
+	}
+
+	notes := ""
+	if len(args) > 4 {
+		notes = strings.Join(args[4:], " ")
+	}
+
+	activity, err := db.NewActivity(time.Now(), duration, duration, distance, sport, verticalGain, notes)
 	if err != nil {
 		util.Fatalf("error creating activity: %v\n", err)
 	}
@@ -66,22 +76,21 @@ func formatDistance(meters int) string {
 }
 
 func showLastActivities(dbh *sql.DB) {
-	fmt.Println("recent activities:")
-	fmt.Println("--------------------------------------------------")
-	fmt.Printf("%-20s %-8s %-10s %s\n", "Date", "Sport", "Time", "Distance")
-	fmt.Println("--------------------------------------------------")
-
 	activities, err := db.LastActivities(dbh, 10)
 	if err != nil {
 		util.Fatalf("error getting last activities: %v\n", err)
 	}
 
-	for _, activity := range activities {
-		fmt.Printf("%-20s %-8s %-10s %s\n",
-			activity.Timestamp.Format("Jan 2, 15:04"),
-			activity.Sport,
-			formatDuration(activity.Duration),
-			formatDistance(activity.Distance))
+	for i, activity := range activities {
+		fmt.Printf("Date: %s\n", activity.Timestamp.Format("Jan 2, 15:04"))
+		fmt.Printf("Sport: %s\n", activity.Sport)
+		fmt.Printf("Time: %s\n", formatDuration(activity.Duration))
+		fmt.Printf("Distance: %s\n", formatDistance(activity.Distance))
+		fmt.Printf("Vertical Gain: %dm\n", activity.VerticalGain)
+		fmt.Printf("Notes: %s\n", activity.Notes)
+		if i < len(activities)-1 {
+			fmt.Print("\n")
+		}
 	}
 }
 
@@ -114,11 +123,16 @@ func userPromptNext(dbh *sql.DB) (string, error) {
 
 	var activityStrings []string
 	for _, activity := range activities {
-		activityStr := fmt.Sprintf("%s: %s for %s covering %s",
+		verticalGainStr := ""
+		if activity.VerticalGain > 0 {
+			verticalGainStr = fmt.Sprintf(" with %dm elevation gain", activity.VerticalGain)
+		}
+		activityStr := fmt.Sprintf("%s: %s for %s covering %s%s",
 			activity.Timestamp.Format("Jan 2"),
 			activity.Sport,
 			formatDuration(activity.Duration),
-			formatDistance(activity.Distance))
+			formatDistance(activity.Distance),
+			verticalGainStr)
 		activityStrings = append(activityStrings, activityStr)
 	}
 
