@@ -170,15 +170,17 @@ func Main() {
 	}
 	defer dbh.Close()
 
-	if len(os.Args) > 1 && os.Args[1] == "add" {
-		addActivity(dbh, os.Args[2:])
-	}
-
-	if len(os.Args) > 1 && os.Args[1] == "recent" {
+	if len(os.Args) <= 1 {
 		showLastActivities(dbh)
+		return
 	}
 
-	if len(os.Args) > 1 && os.Args[1] == "next" {
+	switch os.Args[1] {
+	case "add":
+		addActivity(dbh, os.Args[2:])
+	case "recent":
+		showLastActivities(dbh)
+	case "next":
 		nextWorkout(dbh)
 	}
 }
