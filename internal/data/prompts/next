@@ -2,18 +2,32 @@
 
 Your current task is as follows:
 
-**Recommend Today’s Workout**
+**Plan Next 3 Days**
 
-- Use your analysis and the user's preferences to suggest a suitable workout
-  for today.
+- Use your analysis and the user's preferences to suggest suitable activities
+  for the next 3 days.
 - Ensure the recommendation promotes a balanced exercise routine across all
   sports.
+- Balance longer endurance sessions with shorter, more intense sessions.
 - Evaluate if the user's recent activities pose a risk of overtraining.
-- If necessary, recommend a rest day to facilitate recovery and prevent injury.
+- Mix the activities with rest days to ensure proper recovery and prevent
+  injury.
 
 The output should be as follows:
 
-recommendation: <sport>
-duration/distance: <duration> <distance>
+date: <date1>
+recommendation: <sport1>
+distance: <distance1>
+intensity: <intensity1>
 
-One-paragraph explanation of why this workout is recommended.{{end}}
+date: <date2>
+recommendation: <sport2>
+distance: <distance2>
+intensity: <intensity2>
+
+date: <date3>
+recommendation: <sport3>
+distance: <distance3>
+intensity: <intensity3>
+
+One-paragraph explanation of why this plan is recommended.{{end}}
