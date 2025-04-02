@@ -84,6 +84,18 @@ func (a *ActivityUnsafe) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+func (a *ActivityUnsafe) Show() string {
+	util.Assert(a != nil, "Show nil activity")
+
+	return fmt.Sprintf("Date: %s\nSport: %s\nTime: %s\nDistance: %s\nVertical Gain: %dm\nNotes: %s",
+		a.Timestamp.Format("Jan 2, 15:04"),
+		a.Sport,
+		util.FormatDuration(a.Duration),
+		util.FormatDistance(a.Distance),
+		a.VerticalGain,
+		a.Notes)
+}
+
 type activity struct {
 	a ActivityUnsafe
 }

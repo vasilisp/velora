@@ -142,22 +142,6 @@ func addActivityAI(dbh *sql.DB, args []string) {
 	}
 }
 
-func formatDuration(seconds int) string {
-	hours := seconds / 3600
-	minutes := (seconds % 3600) / 60
-	if hours > 0 {
-		return fmt.Sprintf("%dh%02dm", hours, minutes)
-	}
-	return fmt.Sprintf("%dm", minutes)
-}
-
-func formatDistance(meters int) string {
-	if meters >= 1000 {
-		return fmt.Sprintf("%.1fkm", float64(meters)/1000)
-	}
-	return fmt.Sprintf("%dm", meters)
-}
-
 func showLastActivities(dbh *sql.DB) {
 	activities, err := db.LastActivities(dbh, 10)
 	if err != nil {
@@ -165,14 +149,9 @@ func showLastActivities(dbh *sql.DB) {
 	}
 
 	for i, activity := range activities {
-		fmt.Printf("Date: %s\n", activity.Timestamp.Format("Jan 2, 15:04"))
-		fmt.Printf("Sport: %s\n", activity.Sport)
-		fmt.Printf("Time: %s\n", formatDuration(activity.Duration))
-		fmt.Printf("Distance: %s\n", formatDistance(activity.Distance))
-		fmt.Printf("Vertical Gain: %dm\n", activity.VerticalGain)
-		fmt.Printf("Notes: %s\n", activity.Notes)
+		println(activity.Show())
 		if i < len(activities)-1 {
-			fmt.Print("\n")
+			println()
 		}
 	}
 }
@@ -206,17 +185,7 @@ func userPromptNext(dbh *sql.DB) (string, error) {
 
 	var activityStrings []string
 	for _, activity := range activities {
-		verticalGainStr := ""
-		if activity.VerticalGain > 0 {
-			verticalGainStr = fmt.Sprintf(" with %dm elevation gain", activity.VerticalGain)
-		}
-		activityStr := fmt.Sprintf("%s: %s for %s covering %s%s",
-			activity.Timestamp.Format("Jan 2"),
-			activity.Sport,
-			formatDuration(activity.Duration),
-			formatDistance(activity.Distance),
-			verticalGainStr)
-		activityStrings = append(activityStrings, activityStr)
+		activityStrings = append(activityStrings, activity.Show())
 	}
 
 	prefsPath := filepath.Join(os.Getenv("HOME"), ".velora", "velora.prefs")
