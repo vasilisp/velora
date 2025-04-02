@@ -9,7 +9,7 @@ import (
 	"github.com/vasilisp/velora/internal/util"
 )
 
-const model = openai.ChatModelGPT4oMini
+const model = openai.ChatModelGPT4o
 
 type Client struct {
 	client *openai.Client
