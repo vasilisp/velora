@@ -2,6 +2,7 @@ package db
 
 import (
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -38,47 +39,82 @@ func SportFromString(s string) (Sport, error) {
 	}
 }
 
-type Activity struct {
-	timestamp     time.Time
-	duration      int
-	durationTotal int
-	distance      int
-	sport         Sport
-	verticalGain  int
-	notes         string
+type ActivityUnsafe struct {
+	Timestamp     time.Time `json:"-"`
+	Duration      int       `json:"duration"`
+	DurationTotal int       `json:"duration_total,omitempty"`
+	Distance      int       `json:"distance"`
+	Sport         Sport     `json:"-"`
+	VerticalGain  int       `json:"vertical_gain"`
+	Notes         string    `json:"notes"`
 }
 
-type ActivityRead struct {
-	Timestamp     time.Time
-	Duration      int
-	DurationTotal int
-	Distance      int
-	Sport         Sport
-	VerticalGain  int
-	Notes         string
+func (a ActivityUnsafe) MarshalJSON() ([]byte, error) {
+	type Alias ActivityUnsafe
+	return json.Marshal(&struct {
+		Timestamp int64  `json:"timestamp"`
+		Sport     string `json:"sport"`
+		*Alias
+	}{
+		Timestamp: a.Timestamp.Unix(),
+		Sport:     a.Sport.String(),
+		Alias:     (*Alias)(&a),
+	})
 }
 
-func NewActivity(timestamp time.Time, duration int, durationTotal int, distance int, sport Sport, verticalGain int, notes string) (*Activity, error) {
-	if duration <= 0 {
-		return nil, fmt.Errorf("duration must be positive")
+func (a *ActivityUnsafe) UnmarshalJSON(data []byte) error {
+	type Alias ActivityUnsafe
+	aux := &struct {
+		Timestamp int64  `json:"timestamp"`
+		Sport     string `json:"sport"`
+		*Alias
+	}{
+		Alias: (*Alias)(a),
 	}
-	if durationTotal <= 0 {
-		return nil, fmt.Errorf("durationTotal must be positive")
+	if err := json.Unmarshal(data, &aux); err != nil {
+		return err
 	}
-	if distance <= 0 {
-		return nil, fmt.Errorf("distance must be positive")
+	sport, err := SportFromString(aux.Sport)
+	if err != nil {
+		return err
 	}
-	if sport < Running || sport > Swimming {
-		return nil, fmt.Errorf("invalid sport")
-	}
-	if verticalGain < 0 {
-		return nil, fmt.Errorf("verticalGain must be non-negative")
-	}
-
-	return &Activity{timestamp: timestamp, duration: duration, durationTotal: durationTotal, distance: distance, sport: sport}, nil
+	a.Timestamp = time.Unix(aux.Timestamp, 0)
+	a.Sport = sport
+	return nil
 }
 
-func LastActivities(db *sql.DB, limit int) ([]ActivityRead, error) {
+type activity struct {
+	a ActivityUnsafe
+}
+
+func (a ActivityUnsafe) ToActivity() (activity, error) {
+	if a.DurationTotal <= 0 {
+		a.DurationTotal = a.Duration
+	}
+
+	activity := activity{a}
+	var err error = nil
+
+	if a.Duration <= 0 {
+		err = fmt.Errorf("duration must be positive")
+	}
+
+	if a.Distance <= 0 {
+		err = fmt.Errorf("distance must be positive")
+	}
+
+	if a.Sport < Running || a.Sport > Swimming {
+		err = fmt.Errorf("invalid sport")
+	}
+
+	if a.VerticalGain < 0 {
+		err = fmt.Errorf("verticalGain must be non-negative")
+	}
+
+	return activity, err
+}
+
+func LastActivities(db *sql.DB, limit int) ([]ActivityUnsafe, error) {
 	util.Assert(limit > 0, "LastActivities non-positive limit")
 	util.Assert(db != nil, "LastActivities nil db")
 
@@ -92,10 +128,10 @@ func LastActivities(db *sql.DB, limit int) ([]ActivityRead, error) {
 	}
 	defer rows.Close()
 
-	activities := []ActivityRead{}
+	activities := []ActivityUnsafe{}
 	for rows.Next() {
 		var sportStr string
-		var activity ActivityRead
+		var activity ActivityUnsafe
 		err := rows.Scan(&activity.Timestamp, &activity.Duration, &activity.DurationTotal, &sportStr, &activity.Distance)
 		if err != nil {
 			return nil, fmt.Errorf("error scanning activity: %v", err)
@@ -149,12 +185,12 @@ func Init() (*sql.DB, error) {
 	return db, nil
 }
 
-func InsertActivity(db *sql.DB, activity Activity) error {
-	verticalGain := int64(activity.verticalGain)
+func InsertActivity(db *sql.DB, activity activity) error {
+	verticalGain := int64(activity.a.VerticalGain)
 	if verticalGain == 0 {
 		verticalGain = sql.NullInt64{Valid: false}.Int64
 	}
 	_, err := db.Exec(`INSERT INTO activities (timestamp, duration, duration_total, sport, distance, vertical_gain, notes) VALUES (?, ?, ?, ?, ?, ?, ?)`,
-		activity.timestamp, activity.duration, activity.durationTotal, activity.sport.String(), activity.distance, verticalGain, activity.notes)
+		activity.a.Timestamp, activity.a.Duration, activity.a.DurationTotal, activity.a.Sport.String(), activity.a.Distance, verticalGain, activity.a.Notes)
 	return err
 }

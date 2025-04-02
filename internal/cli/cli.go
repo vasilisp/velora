@@ -17,6 +17,15 @@ import (
 	"github.com/vasilisp/velora/internal/util"
 )
 
+func openaiClient() openai.Client {
+	apiKey := os.Getenv("OPENAI_API_KEY")
+	if apiKey == "" {
+		util.Fatalf("OPENAI_API_KEY environment variable not set\n")
+	}
+
+	return openai.NewClient(apiKey)
+}
+
 func addActivity(dbh *sql.DB, args []string) {
 	if len(args) < 3 {
 		util.Fatalf("Usage: velora add <sport> <duration> <distance>")
@@ -48,17 +57,91 @@ func addActivity(dbh *sql.DB, args []string) {
 		notes = strings.Join(args[4:], " ")
 	}
 
-	activity, err := db.NewActivity(time.Now(), duration, duration, distance, sport, verticalGain, notes)
+	activityUnsafe := db.ActivityUnsafe{
+		Timestamp:     time.Now(),
+		Duration:      duration,
+		DurationTotal: duration,
+		Distance:      distance,
+		Sport:         sport,
+		VerticalGain:  verticalGain,
+		Notes:         notes,
+	}
+
+	activity, err := activityUnsafe.ToActivity()
 	if err != nil {
 		util.Fatalf("error creating activity: %v\n", err)
 	}
 
-	util.Assert(activity != nil, "add nil activity")
-
-	if err := db.InsertActivity(dbh, *activity); err != nil {
+	if err := db.InsertActivity(dbh, activity); err != nil {
 		util.Fatalf("error inserting activity: %v\n", err)
 	}
 }
+
+func systemPromptAdd() (string, error) {
+	fsys, err := data.PromptFS()
+	if err != nil {
+		util.Fatalf("error getting prompt FS: %v\n", err)
+	}
+
+	t, err := template.ParseFS(fsys, "header", "add")
+	if err != nil {
+		util.Fatalf("error parsing template: %v\n", err)
+	}
+
+	var systemPrompt bytes.Buffer
+	if err := t.ExecuteTemplate(&systemPrompt, "add", nil); err != nil {
+		util.Fatalf("error executing template: %v\n", err)
+	}
+
+	return systemPrompt.String(), nil
+}
+
+func addActivityAI(dbh *sql.DB, args []string) {
+	util.Assert(len(args) == 1, "Usage: velora addai <description>")
+
+	client := openaiClient()
+
+	userPrompt := strings.Join(args, " ")
+
+	systemPrompt, err := systemPromptAdd()
+	if err != nil {
+		util.Fatalf("error getting system prompt: %v\n", err)
+	}
+
+	response, err := client.AskGPT(systemPrompt, "Today is "+time.Now().Format("2006-01-02")+". \n"+userPrompt)
+	if err != nil {
+		util.Fatalf("error getting activity: %v\n", err)
+	}
+
+	var activityUnsafe db.ActivityUnsafe
+	if err := (&activityUnsafe).UnmarshalJSON([]byte(response)); err != nil {
+		util.Fatalf("error unmarshalling activity: %v\n", err)
+	}
+
+	activity, err := activityUnsafe.ToActivity()
+	if err != nil {
+		util.Fatalf("error converting activity: %v\n", err)
+	}
+
+	fmt.Printf("read activity:\n\n%s\n\ndoes it look correct? (y/n) ", response)
+
+	var answer string
+	_, err = fmt.Scanln(&answer)
+	if err != nil {
+		util.Fatalf("error reading answer: %v\n", err)
+	}
+	switch strings.ToLower(answer) {
+	case "y", "yes":
+		break
+	default:
+		os.Exit(0)
+	}
+
+	if err := db.InsertActivity(dbh, activity); err != nil {
+		util.Fatalf("error inserting activity: %v\n", err)
+	}
+}
+
 func formatDuration(seconds int) string {
 	hours := seconds / 3600
 	minutes := (seconds % 3600) / 60
@@ -192,6 +275,8 @@ func Main() {
 	switch os.Args[1] {
 	case "add":
 		addActivity(dbh, os.Args[2:])
+	case "addai":
+		addActivityAI(dbh, os.Args[2:])
 	case "recent":
 		showLastActivities(dbh)
 	case "next":

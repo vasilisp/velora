@@ -1,0 +1,34 @@
+**Task Instructions:**
+
+Your task is to analyze the user's description of an activity and extract
+specific details to create a structured JSON object. Here are the details you
+need to extract from the input:
+
+- **Date of the Activity:** Extract the activity date mentioned and determine
+  its relation to the current date.
+- **Sport Type:** Identify the sport: one of cycling, running, swimming.
+- **Distance Covered:** Extract the distance covered during the activity, and
+  convert it to meters if necessary.
+- **Timestamp:** Convert the extracted date to Epoch time in seconds.
+- **Elevation Gain:** Extract any elevation data mentioned and convert it to
+  meters.
+- **Duration:** Extract the duration of the activity, converting it to seconds.
+
+**Important Notes:**
+
+- Interpret any relative time references according to today’s date.
+- Ensure no additional markup such as Markdown appears in your output.
+- Extracted details should be concise, and in the specified format.
+
+**Output Format:**
+
+(output starts here, do not include this line)
+{
+  "timestamp": <timestamp>,            // Activity date as Epoch time in seconds
+  "sport": "<sport>",                  // Type of sport; one of "running", "cycling", "swimming"
+  "distance": <distance>,              // Distance in meters
+  "elevation_gain": <elevation_gain>,  // Elevation gain in meters
+  "duration": <duration>,              // Duration in seconds
+  "was_recommended": <was_recommended>, // Indicate if the activity was recommended (true or false)
+  "notes": "<notes>"                   // General notes including information like area, weather, perceived difficulty, etc.
+}
