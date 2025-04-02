@@ -40,13 +40,14 @@ func SportFromString(s string) (Sport, error) {
 }
 
 type ActivityUnsafe struct {
-	Timestamp     time.Time `json:"-"`
-	Duration      int       `json:"duration"`
-	DurationTotal int       `json:"duration_total,omitempty"`
-	Distance      int       `json:"distance"`
-	Sport         Sport     `json:"-"`
-	VerticalGain  int       `json:"vertical_gain"`
-	Notes         string    `json:"notes"`
+	Timestamp      time.Time `json:"-"`
+	Duration       int       `json:"duration"`
+	DurationTotal  int       `json:"duration_total,omitempty"`
+	Distance       int       `json:"distance"`
+	Sport          Sport     `json:"-"`
+	VerticalGain   int       `json:"vertical_gain"`
+	Notes          string    `json:"notes"`
+	WasRecommended bool      `json:"was_recommended"`
 }
 
 func (a ActivityUnsafe) MarshalJSON() ([]byte, error) {
@@ -176,7 +177,8 @@ func Init() (*sql.DB, error) {
 		sport TEXT CHECK (sport IN ('running', 'cycling', 'swimming')) NOT NULL,
 		distance INTEGER NOT NULL,
 		vertical_gain INTEGER,
-		notes TEXT
+		notes TEXT,
+		was_recommended BOOLEAN NOT NULL DEFAULT FALSE
 	)`)
 	if err != nil {
 		return nil, fmt.Errorf("error creating activities table: %v", err)
@@ -190,7 +192,7 @@ func InsertActivity(db *sql.DB, activity activity) error {
 	if verticalGain == 0 {
 		verticalGain = sql.NullInt64{Valid: false}.Int64
 	}
-	_, err := db.Exec(`INSERT INTO activities (timestamp, duration, duration_total, sport, distance, vertical_gain, notes) VALUES (?, ?, ?, ?, ?, ?, ?)`,
-		activity.a.Timestamp, activity.a.Duration, activity.a.DurationTotal, activity.a.Sport.String(), activity.a.Distance, verticalGain, activity.a.Notes)
+	_, err := db.Exec(`INSERT INTO activities (timestamp, duration, duration_total, sport, distance, vertical_gain, notes, was_recommended) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+		activity.a.Timestamp, activity.a.Duration, activity.a.DurationTotal, activity.a.Sport.String(), activity.a.Distance, verticalGain, activity.a.Notes, activity.a.WasRecommended)
 	return err
 }
