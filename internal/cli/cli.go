@@ -123,7 +123,7 @@ func addActivityAI(dbh *sql.DB, args []string) {
 		util.Fatalf("error converting activity: %v\n", err)
 	}
 
-	fmt.Printf("read activity:\n\n%s\n\ndoes it look correct? (y/n) ", response)
+	fmt.Printf("read activity:\n\n%s\n\ndoes it look correct? (y/n) ", strconv.Quote(response))
 
 	var answer string
 	_, err = fmt.Scanln(&answer)
@@ -191,7 +191,7 @@ func userPromptNext(dbh *sql.DB) (string, error) {
 	prefsPath := filepath.Join(os.Getenv("HOME"), ".velora", "velora.prefs")
 	prefsContent := ""
 	if prefs, err := os.ReadFile(prefsPath); err == nil {
-		prefsContent = fmt.Sprintf("My workout preferences:\n%s\n", string(prefs))
+		prefsContent = fmt.Sprintf("My workout preferences:\n%s\n", strconv.Quote(string(prefs)))
 	}
 
 	userPrompt := fmt.Sprintf("%sHere are my recent activities:\n%s\n\nWhat should I do for my next workout?",
@@ -226,7 +226,7 @@ func nextWorkout(dbh *sql.DB) {
 		util.Fatalf("error getting workout recommendation: %v\n", err)
 	}
 
-	fmt.Println(response)
+	fmt.Println(strconv.Quote(response))
 }
 
 func Main() {
