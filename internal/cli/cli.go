@@ -4,11 +4,11 @@ import (
 	"bytes"
 	"database/sql"
 	"fmt"
-	"html/template"
 	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
+	"text/template"
 	"time"
 
 	"github.com/vasilisp/velora/internal/data"
