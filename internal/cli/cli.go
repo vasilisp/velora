@@ -3,6 +3,7 @@ package cli
 import (
 	"bytes"
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -14,6 +15,7 @@ import (
 	"github.com/vasilisp/velora/internal/data"
 	"github.com/vasilisp/velora/internal/db"
 	"github.com/vasilisp/velora/internal/openai"
+	"github.com/vasilisp/velora/internal/profile"
 	"github.com/vasilisp/velora/internal/util"
 )
 
@@ -152,6 +154,7 @@ func showLastActivities(dbh *sql.DB) {
 		println(activity.Show())
 		if i < len(activities)-1 {
 			println()
+			println()
 		}
 	}
 }
@@ -188,15 +191,21 @@ func userPromptNext(dbh *sql.DB) (string, error) {
 		activityStrings = append(activityStrings, activity.Show())
 	}
 
-	prefsPath := filepath.Join(os.Getenv("HOME"), ".velora", "velora.prefs")
+	prefsPath := filepath.Join(os.Getenv("HOME"), ".velora", "prefs.json")
 	prefsContent := ""
 	if prefs, err := os.ReadFile(prefsPath); err == nil {
-		prefsContent = fmt.Sprintf("My workout preferences:\n%s\n", prefs)
+		var p profile.Profile
+		if err := json.Unmarshal(prefs, &p); err != nil {
+			util.Fatalf("error unmarshalling prefs: %v\n", err)
+		}
+		prefsContent = fmt.Sprintf("**Workout preferences:**\n\n%s\n\n", p.Describe())
 	}
 
-	userPrompt := fmt.Sprintf("%sHere are my recent activities:\n%s\n\nWhat should I do for my next workout?",
+	userPrompt := fmt.Sprintf("%s**Recent activities:**\n\n%s\n\nWhat should I do for my next workout?",
 		prefsContent,
-		strings.Join(activityStrings, "\n"))
+		strings.Join(activityStrings, "\n\n"))
+
+	println(userPrompt)
 
 	return userPrompt, nil
 }
