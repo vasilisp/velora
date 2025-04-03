@@ -205,8 +205,6 @@ func userPromptNext(dbh *sql.DB) (string, error) {
 		prefsContent,
 		strings.Join(activityStrings, "\n\n"))
 
-	println(userPrompt)
-
 	return userPrompt, nil
 }
 
