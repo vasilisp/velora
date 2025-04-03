@@ -3,6 +3,7 @@ package util
 import (
 	"fmt"
 	"os"
+	"regexp"
 )
 
 func Fatalf(format string, v ...any) {
@@ -30,4 +31,11 @@ func FormatDistance(meters int) string {
 		return fmt.Sprintf("%.1fkm", float64(meters)/1000)
 	}
 	return fmt.Sprintf("%dm", meters)
+}
+
+var sanitizeControlChars = regexp.MustCompile(`[\x00-\x08\x0B-\x1F\x7F]`)
+var sanitizeAnsi = regexp.MustCompile(`\x1B\[[0-9;]*[a-zA-Z]`)
+
+func SanitizeTerminalOutput(input string) string {
+	return sanitizeAnsi.ReplaceAllString(sanitizeControlChars.ReplaceAllString(input, ""), "")
 }

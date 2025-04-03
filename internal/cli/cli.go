@@ -123,7 +123,7 @@ func addActivityAI(dbh *sql.DB, args []string) {
 		util.Fatalf("error converting activity: %v\n", err)
 	}
 
-	fmt.Printf("read activity:\n\n%s\n\ndoes it look correct? (y/n) ", strconv.Quote(response))
+	fmt.Printf("read activity:\n\n%s\n\ndoes it look correct? (y/n) ", util.SanitizeTerminalOutput(response))
 
 	var answer string
 	_, err = fmt.Scanln(&answer)
@@ -226,7 +226,7 @@ func nextWorkout(dbh *sql.DB) {
 		util.Fatalf("error getting workout recommendation: %v\n", err)
 	}
 
-	fmt.Println(strconv.Quote(response))
+	fmt.Println(util.SanitizeTerminalOutput(response))
 }
 
 func Main() {
