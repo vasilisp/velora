@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"strconv"
 	"strings"
 	"time"
 
@@ -94,7 +93,7 @@ func (a *ActivityUnsafe) Show() string {
 		util.FormatDuration(a.Duration),
 		util.FormatDistance(a.Distance),
 		a.VerticalGain,
-		strconv.Quote(a.Notes))
+		util.SanitizeOutput(a.Notes, true))
 }
 
 type activity struct {

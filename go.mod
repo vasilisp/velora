@@ -5,6 +5,7 @@ go 1.24.1
 require (
 	github.com/mattn/go-sqlite3 v1.14.24
 	github.com/openai/openai-go v0.1.0-beta.3
+	golang.org/x/text v0.21.0
 )
 
 require (
