@@ -55,6 +55,16 @@ func (d *AllowedDays) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+func (d AllowedDays) Complement() AllowedDays {
+	complement := make(AllowedDays)
+	for _, day := range util.AllDays {
+		if _, ok := d[day]; !ok {
+			complement[day] = struct{}{}
+		}
+	}
+	return complement
+}
+
 func (d AllowedDays) String() string {
 	var days []string
 	for day := range d {
@@ -94,6 +104,10 @@ func (p Profile) Describe() string {
 		parts = append(parts, "- I do not cycle.")
 	}
 
+	if len(p.CyclingConstraints.Days) < 7 {
+		parts = append(parts, fmt.Sprintf("- I cannot cycle on %s.", p.CyclingConstraints.Days.Complement().String()))
+	}
+
 	if p.CyclingConstraints.TargetDistance > 0 {
 		parts = append(parts, fmt.Sprintf("- I am training for a %s ride.",
 			util.FormatDistance(int(p.CyclingConstraints.TargetDistance))))
@@ -108,6 +122,10 @@ func (p Profile) Describe() string {
 		parts = append(parts, fmt.Sprintf("- I can run on %s.", p.RunningConstraints.Days.String()))
 	} else {
 		parts = append(parts, "- I do not run.")
+	}
+
+	if len(p.RunningConstraints.Days) < 7 {
+		parts = append(parts, fmt.Sprintf("- I cannot run on %s.", p.RunningConstraints.Days.Complement().String()))
 	}
 
 	if p.RunningConstraints.TargetDistance > 0 {

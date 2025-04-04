@@ -42,6 +42,16 @@ func (d DayOfWeek) String() (string, error) {
 	}
 }
 
+var AllDays = []DayOfWeek{
+	Monday,
+	Tuesday,
+	Wednesday,
+	Thursday,
+	Friday,
+	Saturday,
+	Sunday,
+}
+
 func Fatalf(format string, v ...any) {
 	fmt.Fprintf(os.Stderr, format, v...)
 	os.Exit(1)
