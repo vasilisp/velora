@@ -10,8 +10,8 @@ need to extract from the input:
 - **Distance Covered:** Extract the distance covered during the activity, and
   convert it to meters if necessary.
 - **Timestamp:** Convert the extracted date to Epoch time in seconds.
-- **Elevation Gain:** Extract any elevation data mentioned and convert it to
-  meters.
+- **Vertical Gain:** Extract any vertical (elevation) gain mentioned and convert
+  it to meters.
 - **Duration:** Extract the duration of the activity, converting it to seconds.
 
 **Important Notes:**
@@ -27,7 +27,7 @@ need to extract from the input:
   "timestamp": <timestamp>,            // Activity date as Epoch time in seconds
   "sport": "<sport>",                  // Type of sport; one of "running", "cycling", "swimming"
   "distance": <distance>,              // Distance in meters
-  "elevation_gain": <elevation_gain>,  // Elevation gain in meters
+  "vertical_gain": <vertical_gain>,    // Vertical gain in meters
   "duration": <duration>,              // Duration in seconds
   "was_recommended": <was_recommended>, // Indicate if the activity was recommended (true or false)
   "notes": "<notes>"                   // General notes including information like area, weather, perceived difficulty, etc.
