@@ -50,7 +50,50 @@ All distances are unsigned integers, and JSON uses camelCase field names.
 
 ## Second user message: recent activities
 
-The second message you receive will be the user's recent activities.
+The second message you receive will be a JSON array of recent activities. Each activity has:
+
+- `time`: ISO 8601 timestamp of when the activity occurred
+- `duration`: Activity duration in seconds (integer)
+- `duration_total`: Total duration including breaks in seconds (integer, optional)
+- `distance`: Distance covered in meters (integer)
+- `sport`: Sport type ("running", "cycling", or "swimming")
+- `vertical_gain`: Elevation gain in meters (integer)
+- `notes`: Free-form text notes (string)
+- `was_recommended`: Whether this activity was recommended by the system (boolean)
+
+### Example JSON
+
+[
+  {
+    "time": "2024-01-15T18:30:00Z",
+    "duration": 3600,
+    "duration_total": 3720,
+    "distance": 25000,
+    "sport": "cycling",
+    "vertical_gain": 350,
+    "notes": "Evening ride, felt good despite headwind",
+    "was_recommended": true
+  },
+  {
+    "time": "2024-01-13T09:15:00Z",
+    "duration": 2700,
+    "distance": 7500,
+    "sport": "running",
+    "vertical_gain": 120,
+    "notes": "Morning run in the park",
+    "was_recommended": false
+  },
+  {
+    "time": "2024-01-12T17:00:00Z",
+    "duration": 3300,
+    "duration_total": 3600,
+    "distance": 22000,
+    "sport": "cycling",
+    "vertical_gain": 280,
+    "notes": "Indoor trainer session",
+    "was_recommended": true
+  }
+]
 
 ## Output
 

@@ -40,7 +40,7 @@ func SportFromString(s string) (Sport, error) {
 }
 
 type ActivityUnsafe struct {
-	Timestamp      time.Time `json:"-"`
+	Time           time.Time `json:"time"`
 	Duration       int       `json:"duration"`
 	DurationTotal  int       `json:"duration_total,omitempty"`
 	Distance       int       `json:"distance"`
@@ -53,21 +53,18 @@ type ActivityUnsafe struct {
 func (a ActivityUnsafe) MarshalJSON() ([]byte, error) {
 	type Alias ActivityUnsafe
 	return json.Marshal(&struct {
-		Timestamp int64  `json:"timestamp"`
-		Sport     string `json:"sport"`
+		Sport string `json:"sport"`
 		*Alias
 	}{
-		Timestamp: a.Timestamp.Unix(),
-		Sport:     a.Sport.String(),
-		Alias:     (*Alias)(&a),
+		Sport: a.Sport.String(),
+		Alias: (*Alias)(&a),
 	})
 }
 
 func (a *ActivityUnsafe) UnmarshalJSON(data []byte) error {
 	type Alias ActivityUnsafe
 	aux := &struct {
-		Timestamp int64  `json:"timestamp"`
-		Sport     string `json:"sport"`
+		Sport string `json:"sport"`
 		*Alias
 	}{
 		Alias: (*Alias)(a),
@@ -79,7 +76,6 @@ func (a *ActivityUnsafe) UnmarshalJSON(data []byte) error {
 	if err != nil {
 		return err
 	}
-	a.Timestamp = time.Unix(aux.Timestamp, 0)
 	a.Sport = sport
 	return nil
 }
@@ -88,7 +84,7 @@ func (a *ActivityUnsafe) Show() string {
 	util.Assert(a != nil, "Show nil activity")
 
 	return fmt.Sprintf("Date: %s\nSport: %s\nTime: %s\nDistance: %s\nVertical Gain: %dm\nNotes: %s",
-		a.Timestamp.Format("Jan 2, 15:04"),
+		a.Time.Format("Jan 2, 15:04"),
 		a.Sport,
 		util.FormatDuration(a.Duration),
 		util.FormatDistance(a.Distance),
@@ -209,6 +205,6 @@ func InsertActivity(db *sql.DB, activity activity) error {
 		verticalGain = sql.NullInt64{Valid: false}.Int64
 	}
 	_, err := db.Exec(`INSERT INTO activities (timestamp, duration, duration_total, sport, distance, vertical_gain, notes, was_recommended) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-		activity.a.Timestamp, activity.a.Duration, activity.a.DurationTotal, activity.a.Sport.String(), activity.a.Distance, verticalGain, activity.a.Notes, activity.a.WasRecommended)
+		activity.a.Time.Unix(), activity.a.Duration, activity.a.DurationTotal, activity.a.Sport.String(), activity.a.Distance, verticalGain, activity.a.Notes, activity.a.WasRecommended)
 	return err
 }

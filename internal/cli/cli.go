@@ -60,7 +60,7 @@ func addActivity(dbh *sql.DB, args []string) {
 	}
 
 	activityUnsafe := db.ActivityUnsafe{
-		Timestamp:     time.Now(),
+		Time:          time.Now(),
 		Duration:      duration,
 		DurationTotal: duration,
 		Distance:      distance,
@@ -186,28 +186,27 @@ func userPromptNext(dbh *sql.DB) ([]string, error) {
 		util.Fatalf("error getting last activities: %v\n", err)
 	}
 
-	var activityStrings []string
-	for _, activity := range activities {
-		activityStrings = append(activityStrings, activity.Show())
+	activityMessage, err := json.MarshalIndent(activities, "", "  ")
+	if err != nil {
+		util.Fatalf("error marshalling activities: %v\n", err)
 	}
 
 	prefsPath := filepath.Join(os.Getenv("HOME"), ".velora", "prefs.json")
-	prefsContent := ""
+	prefsBytes := []byte{}
 	if prefs, err := os.ReadFile(prefsPath); err == nil {
 		var p profile.Profile
 		if err := json.Unmarshal(prefs, &p); err != nil {
 			util.Fatalf("error unmarshalling prefs: %v\n", err)
 		}
-		prefsBytes, err := json.MarshalIndent(p, "", "  ")
+		prefsBytes, err = json.MarshalIndent(p, "", "  ")
 		if err != nil {
 			util.Fatalf("error marshalling prefs: %v\n", err)
 		}
-		prefsContent = string(prefsBytes)
 	}
 
 	userPrompt := []string{
-		prefsContent,
-		"**Recent activities:**\n\n" + strings.Join(activityStrings, "\n\n"),
+		string(prefsBytes),
+		string(activityMessage),
 	}
 
 	return userPrompt, nil
