@@ -154,7 +154,6 @@ func showLastActivities(dbh *sql.DB) {
 		println(activity.Show())
 		if i < len(activities)-1 {
 			println()
-			println()
 		}
 	}
 }
