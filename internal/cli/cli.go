@@ -164,7 +164,7 @@ func systemPromptNext() (string, error) {
 		util.Fatalf("error getting prompt FS: %v\n", err)
 	}
 
-	t, err := template.ParseFS(fsys, "header", "next")
+	t, err := template.ParseFS(fsys, "header", "next", "inputspec")
 	if err != nil {
 		util.Fatalf("error parsing template: %v\n", err)
 	}
@@ -173,6 +173,8 @@ func systemPromptNext() (string, error) {
 	if err := t.ExecuteTemplate(&systemPrompt, "next", nil); err != nil {
 		util.Fatalf("error executing template: %v\n", err)
 	}
+
+	fmt.Println(systemPrompt.String())
 
 	return systemPrompt.String(), nil
 }
