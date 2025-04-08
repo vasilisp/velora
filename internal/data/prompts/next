@@ -21,7 +21,7 @@ The first message you receive will be a JSON object that conforms to the followi
 
 Each of `cycling_constraints` and `running_constraints` is a **SportConstraints** object with:
 
-- `target_weekly_distance`: Total weekly training distance goal (unsigned integer in meters).
+- `target_weekly_distance`: Total weekly training distance goal (unsigned integer in meters). Note that a week starts on Monday and ends on Sunday.
 - `target_distance`: Target distance for a single session (unsigned integer in meters).
 - `allowed_days`: A list of strings representing available training days. Each day is capitalized (e.g., `"Monday"`, `"Tuesday"`).
 - `trains_indoors`: Boolean indicating if the user trains indoors.
