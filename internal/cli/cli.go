@@ -14,18 +14,22 @@ import (
 
 	"github.com/vasilisp/velora/internal/data"
 	"github.com/vasilisp/velora/internal/db"
-	"github.com/vasilisp/velora/internal/openai"
+	"github.com/vasilisp/velora/internal/langchain"
 	"github.com/vasilisp/velora/internal/profile"
 	"github.com/vasilisp/velora/internal/util"
 )
 
-func openaiClient() openai.Client {
+func langChainClient() langchain.Client {
 	apiKey := os.Getenv("OPENAI_API_KEY")
 	if apiKey == "" {
 		util.Fatalf("OPENAI_API_KEY environment variable not set\n")
 	}
 
-	return openai.NewClient(apiKey)
+	client, err := langchain.NewClient(apiKey)
+	if err != nil {
+		util.Fatalf("error creating OpenAI client: %v\n", err)
+	}
+	return client
 }
 
 func addActivity(dbh *sql.DB, args []string) {
@@ -101,7 +105,7 @@ func systemPromptAdd() (string, error) {
 func addActivityAI(dbh *sql.DB, args []string) {
 	util.Assert(len(args) == 1, "Usage: velora addai <description>")
 
-	client := openaiClient()
+	client := langChainClient()
 
 	userPrompt := strings.Join(args, " ")
 
@@ -214,7 +218,7 @@ func userPromptData(dbh *sql.DB) ([]string, error) {
 func askAI(dbh *sql.DB, mode string, userPromptExtra []string) {
 	util.Assert(dbh != nil, "askAI nil dbh")
 
-	client := openaiClient()
+	client := langChainClient()
 
 	systemPrompt, err := systemPromptTemplate(mode)
 	if err != nil {
