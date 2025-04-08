@@ -132,7 +132,7 @@ func LastActivities(db *sql.DB, limit int) ([]ActivityUnsafe, error) {
 	util.Assert(db != nil, "LastActivities nil db")
 
 	rows, err := db.Query(`
-		SELECT timestamp, duration, duration_total, sport, distance
+		SELECT timestamp, duration, duration_total, sport, distance, vertical_gain, notes, was_recommended
 		FROM activities
 		ORDER BY timestamp DESC
 		LIMIT ?`, limit)
@@ -145,7 +145,8 @@ func LastActivities(db *sql.DB, limit int) ([]ActivityUnsafe, error) {
 	for rows.Next() {
 		var sportStr string
 		var activity ActivityUnsafe
-		err := rows.Scan(&activity.Timestamp, &activity.Duration, &activity.DurationTotal, &sportStr, &activity.Distance)
+		var verticalGain sql.NullInt64
+		err := rows.Scan(&activity.Time, &activity.Duration, &activity.DurationTotal, &sportStr, &activity.Distance, &verticalGain, &activity.Notes, &activity.WasRecommended)
 		if err != nil {
 			return nil, fmt.Errorf("error scanning activity: %v", err)
 		}
@@ -154,6 +155,9 @@ func LastActivities(db *sql.DB, limit int) ([]ActivityUnsafe, error) {
 			return nil, fmt.Errorf("error parsing sport: %v", err)
 		}
 		activity.Sport = sport
+		if verticalGain.Valid {
+			activity.VerticalGain = int(verticalGain.Int64)
+		}
 		activities = append(activities, activity)
 	}
 
