@@ -110,7 +110,7 @@ func addActivityAI(dbh *sql.DB, args []string) {
 		util.Fatalf("error getting system prompt: %v\n", err)
 	}
 
-	response, err := client.AskGPT(systemPrompt, "Today is "+time.Now().Format("2006-01-02")+". \n"+userPrompt)
+	response, err := client.AskGPT(systemPrompt, []string{"Today is " + time.Now().Format("2006-01-02"), userPrompt})
 	if err != nil {
 		util.Fatalf("error getting activity: %v\n", err)
 	}
@@ -178,7 +178,7 @@ func systemPromptNext() (string, error) {
 	return systemPrompt.String(), nil
 }
 
-func userPromptNext(dbh *sql.DB) (string, error) {
+func userPromptNext(dbh *sql.DB) ([]string, error) {
 	util.Assert(dbh != nil, "userPromptNext nil dbh")
 
 	activities, err := db.LastActivities(dbh, 10)
@@ -198,12 +198,17 @@ func userPromptNext(dbh *sql.DB) (string, error) {
 		if err := json.Unmarshal(prefs, &p); err != nil {
 			util.Fatalf("error unmarshalling prefs: %v\n", err)
 		}
-		prefsContent = fmt.Sprintf("**Workout preferences:**\n\n%s\n\n", p.Describe())
+		prefsBytes, err := json.MarshalIndent(p, "", "  ")
+		if err != nil {
+			util.Fatalf("error marshalling prefs: %v\n", err)
+		}
+		prefsContent = string(prefsBytes)
 	}
 
-	userPrompt := fmt.Sprintf("%s**Recent activities:**\n\n%s\n\nWhat should I do for my next workout?",
+	userPrompt := []string{
 		prefsContent,
-		strings.Join(activityStrings, "\n\n"))
+		"**Recent activities:**\n\n" + strings.Join(activityStrings, "\n\n"),
+	}
 
 	return userPrompt, nil
 }
@@ -218,14 +223,14 @@ func nextWorkout(dbh *sql.DB) {
 
 	client := openai.NewClient(apiKey)
 
-	userPrompt, err := userPromptNext(dbh)
-	if err != nil {
-		util.Fatalf("error getting user prompt: %v\n", err)
-	}
-
 	systemPrompt, err := systemPromptNext()
 	if err != nil {
 		util.Fatalf("error getting system prompt: %v\n", err)
+	}
+
+	userPrompt, err := userPromptNext(dbh)
+	if err != nil {
+		util.Fatalf("error getting user prompt: %v\n", err)
 	}
 
 	response, err := client.AskGPT(systemPrompt, userPrompt)

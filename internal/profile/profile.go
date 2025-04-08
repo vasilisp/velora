@@ -80,7 +80,7 @@ func (d AllowedDays) String() string {
 type SportConstraints struct {
 	TargetWeeklyDistance uint        `json:"target_weekly_distance"`
 	TargetDistance       uint        `json:"target_distance"`
-	Days                 AllowedDays `json:"days"`
+	AllowedDays          AllowedDays `json:"allowed_days"`
 	TrainsIndoors        bool        `json:"trains_indoors"`
 }
 
@@ -88,66 +88,4 @@ type Profile struct {
 	CyclingConstraints SportConstraints `json:"cycling_constraints"`
 	RunningConstraints SportConstraints `json:"running_constraints"`
 	FTP                uint             `json:"ftp"`
-}
-
-func (p Profile) Describe() string {
-	var parts []string
-
-	if p.CyclingConstraints.TargetWeeklyDistance > 0 {
-		parts = append(parts, fmt.Sprintf("- I target %s of cycling per week.",
-			util.FormatDistance(int(p.CyclingConstraints.TargetWeeklyDistance))))
-	}
-
-	if len(p.CyclingConstraints.Days) > 0 {
-		parts = append(parts, fmt.Sprintf("- I can cycle on %s.", p.CyclingConstraints.Days.String()))
-	} else {
-		parts = append(parts, "- I do not cycle.")
-	}
-
-	if len(p.CyclingConstraints.Days) < 7 {
-		parts = append(parts, fmt.Sprintf("- I cannot cycle on %s.", p.CyclingConstraints.Days.Complement().String()))
-	}
-
-	if p.CyclingConstraints.TargetDistance > 0 {
-		parts = append(parts, fmt.Sprintf("- I am training for a %s ride.",
-			util.FormatDistance(int(p.CyclingConstraints.TargetDistance))))
-	}
-
-	if p.RunningConstraints.TargetWeeklyDistance > 0 {
-		parts = append(parts, fmt.Sprintf("- I target %s of running per week.",
-			util.FormatDistance(int(p.RunningConstraints.TargetWeeklyDistance))))
-	}
-
-	if len(p.RunningConstraints.Days) > 0 {
-		parts = append(parts, fmt.Sprintf("- I can run on %s.", p.RunningConstraints.Days.String()))
-	} else {
-		parts = append(parts, "- I do not run.")
-	}
-
-	if len(p.RunningConstraints.Days) < 7 {
-		parts = append(parts, fmt.Sprintf("- I cannot run on %s.", p.RunningConstraints.Days.Complement().String()))
-	}
-
-	if p.RunningConstraints.TargetDistance > 0 {
-		parts = append(parts, fmt.Sprintf("- I am training for a %s run.",
-			util.FormatDistance(int(p.RunningConstraints.TargetDistance))))
-	}
-
-	if p.FTP > 0 {
-		parts = append(parts, fmt.Sprintf("- My FTP is %d watts.", p.FTP))
-	}
-
-	if p.CyclingConstraints.TrainsIndoors {
-		parts = append(parts, "- I can do cycling training indoors (on a turbo trainer).")
-	} else {
-		parts = append(parts, "- I cannot do cycling training indoors (on a turbo trainer).")
-	}
-
-	if p.RunningConstraints.TrainsIndoors {
-		parts = append(parts, "- I can do running training indoors (on a treadmill).")
-	} else {
-		parts = append(parts, "- I cannot do running training indoors (on a treadmill).")
-	}
-
-	return strings.Join(parts, "\n")
 }

@@ -30,16 +30,19 @@ func extractGPTResponse(chatCompletion *openai.ChatCompletion) (string, error) {
 	return chatCompletion.Choices[0].Message.Content, nil
 }
 
-func (c Client) AskGPT(systemMessage string, userMessage string) (string, error) {
+func (c Client) AskGPT(systemMessage string, userMessages []string) (string, error) {
 	util.Assert(systemMessage != "", "AskGPT empty systemMessage")
-	util.Assert(userMessage != "", "AskGPT empty userMessage")
+	util.Assert(len(userMessages) > 0, "AskGPT empty userMessages")
+
+	messages := make([]openai.ChatCompletionMessageParamUnion, len(userMessages)+1)
+	messages[0] = openai.SystemMessage(systemMessage)
+	for i, userMessage := range userMessages {
+		messages[i+1] = openai.UserMessage(userMessage)
+	}
 
 	chatCompletion, err := c.client.Chat.Completions.New(context.TODO(), openai.ChatCompletionNewParams{
-		Messages: []openai.ChatCompletionMessageParamUnion{
-			openai.SystemMessage(systemMessage),
-			openai.UserMessage(userMessage),
-		},
-		Model: model,
+		Messages: messages,
+		Model:    model,
 	})
 	if err != nil {
 		return "", fmt.Errorf("ChatCompletion error: %v", err)
