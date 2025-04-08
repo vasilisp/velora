@@ -158,29 +158,27 @@ func showLastActivities(dbh *sql.DB) {
 	}
 }
 
-func systemPromptNext() (string, error) {
+func systemPromptTemplate(templateName string) (string, error) {
 	fsys, err := data.PromptFS()
 	if err != nil {
 		util.Fatalf("error getting prompt FS: %v\n", err)
 	}
 
-	t, err := template.ParseFS(fsys, "header", "next", "inputspec")
+	t, err := template.ParseFS(fsys, "header", templateName, "inputspec")
 	if err != nil {
 		util.Fatalf("error parsing template: %v\n", err)
 	}
 
 	var systemPrompt bytes.Buffer
-	if err := t.ExecuteTemplate(&systemPrompt, "next", nil); err != nil {
+	if err := t.ExecuteTemplate(&systemPrompt, templateName, nil); err != nil {
 		util.Fatalf("error executing template: %v\n", err)
 	}
-
-	fmt.Println(systemPrompt.String())
 
 	return systemPrompt.String(), nil
 }
 
-func userPromptNext(dbh *sql.DB) ([]string, error) {
-	util.Assert(dbh != nil, "userPromptNext nil dbh")
+func userPromptData(dbh *sql.DB) ([]string, error) {
+	util.Assert(dbh != nil, "userPromptData nil dbh")
 
 	activities, err := db.LastActivities(dbh, 10)
 	if err != nil {
@@ -213,27 +211,22 @@ func userPromptNext(dbh *sql.DB) ([]string, error) {
 	return userPrompt, nil
 }
 
-func nextWorkout(dbh *sql.DB) {
-	util.Assert(dbh != nil, "nextWorkout nil dbh")
+func askAI(dbh *sql.DB, mode string, userPromptExtra []string) {
+	util.Assert(dbh != nil, "askAI nil dbh")
 
-	apiKey := os.Getenv("OPENAI_API_KEY")
-	if apiKey == "" {
-		util.Fatalf("OPENAI_API_KEY environment variable not set\n")
-	}
+	client := openaiClient()
 
-	client := openai.NewClient(apiKey)
-
-	systemPrompt, err := systemPromptNext()
+	systemPrompt, err := systemPromptTemplate(mode)
 	if err != nil {
 		util.Fatalf("error getting system prompt: %v\n", err)
 	}
 
-	userPrompt, err := userPromptNext(dbh)
+	userPrompt, err := userPromptData(dbh)
 	if err != nil {
 		util.Fatalf("error getting user prompt: %v\n", err)
 	}
 
-	response, err := client.AskGPT(systemPrompt, userPrompt)
+	response, err := client.AskGPT(systemPrompt, append(userPrompt, userPromptExtra...))
 	if err != nil {
 		util.Fatalf("error getting workout recommendation: %v\n", err)
 	}
@@ -261,6 +254,8 @@ func Main() {
 	case "recent":
 		showLastActivities(dbh)
 	case "next":
-		nextWorkout(dbh)
+		askAI(dbh, "next", nil)
+	case "ask":
+		askAI(dbh, "ask", []string{strings.Join(os.Args[2:], " ")})
 	}
 }
