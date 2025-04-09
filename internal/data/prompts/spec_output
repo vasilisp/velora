@@ -7,6 +7,8 @@ The output should be a JSON list, where each item conforms to the following sche
 - `distance`: recommended distance in meters
 - `intensity`: one of "easy", "medium", "hard"
 
+No output is expected beyond the JSON list. No explanations or Markdown formatting.
+
 ### Example output
 
 ```
