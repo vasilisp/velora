@@ -15,7 +15,7 @@ type Client struct {
 func NewClient(apiKey string) (Client, error) {
 	llm, err := openai.New(
 		openai.WithToken(apiKey),
-		openai.WithModel("gpt-4"),
+		openai.WithModel("gpt-4o"),
 	)
 	if err != nil {
 		return Client{}, fmt.Errorf("error creating OpenAI client: %v", err)
@@ -24,22 +24,21 @@ func NewClient(apiKey string) (Client, error) {
 }
 
 func (c *Client) AskGPT(systemMessage string, userMessages []string) (string, error) {
-	if systemMessage == "" {
-		return "", fmt.Errorf("empty system message")
-	}
 	if len(userMessages) == 0 {
 		return "", fmt.Errorf("empty user messages")
 	}
 
-	// Create messages array with system message first
-	messages := []llms.MessageContent{
-		{
+	var messages []llms.MessageContent
+	if systemMessage != "" {
+		messages = make([]llms.MessageContent, 1, len(userMessages)+1)
+		messages[0] = llms.MessageContent{
 			Role:  llms.ChatMessageTypeSystem,
 			Parts: []llms.ContentPart{llms.TextContent{Text: systemMessage}},
-		},
+		}
+	} else {
+		messages = make([]llms.MessageContent, 0, len(userMessages))
 	}
 
-	// Add user messages
 	for _, msg := range userMessages {
 		messages = append(messages, llms.MessageContent{
 			Role:  llms.ChatMessageTypeHuman,

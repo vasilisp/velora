@@ -162,13 +162,13 @@ func showLastActivities(dbh *sql.DB) {
 	}
 }
 
-func systemPromptTemplate(templateName string) (string, error) {
+func executeTemplate(templateName string, allTemplates []string) (string, error) {
 	fsys, err := data.PromptFS()
 	if err != nil {
 		util.Fatalf("error getting prompt FS: %v\n", err)
 	}
 
-	t, err := template.ParseFS(fsys, "header", templateName, "inputspec")
+	t, err := template.ParseFS(fsys, allTemplates...)
 	if err != nil {
 		util.Fatalf("error parsing template: %v\n", err)
 	}
@@ -215,22 +215,41 @@ func userPromptData(dbh *sql.DB) ([]string, error) {
 	return userPrompt, nil
 }
 
-func askAI(dbh *sql.DB, mode string, userPromptExtra []string) {
+func askAI(dbh *sql.DB, mode string, systemPromptTemplates []string, userPromptExtra []string) {
 	util.Assert(dbh != nil, "askAI nil dbh")
 
 	client := langChainClient()
 
-	systemPrompt, err := systemPromptTemplate(mode)
+	systemPrompt, err := executeTemplate(mode, systemPromptTemplates)
 	if err != nil {
 		util.Fatalf("error getting system prompt: %v\n", err)
 	}
+	fmt.Println(systemPrompt)
 
-	userPrompt, err := userPromptData(dbh)
+	userPromptData, err := userPromptData(dbh)
 	if err != nil {
 		util.Fatalf("error getting user prompt: %v\n", err)
 	}
+	userPrompt := append(userPromptData, userPromptExtra...)
 
-	response, err := client.AskGPT(systemPrompt, append(userPrompt, userPromptExtra...))
+	response, err := client.AskGPT(systemPrompt, userPrompt)
+	if err != nil {
+		util.Fatalf("error getting workout recommendation: %v\n", err)
+	}
+
+	fmt.Println(util.SanitizeOutput(response, false))
+}
+
+func tuneAI() {
+	client := langChainClient()
+
+	userPrompt, err := executeTemplate("tune", []string{"tune", "header", "spec_input", "spec_output"})
+	if err != nil {
+		util.Fatalf("error getting user prompt: %v\n", err)
+	}
+	fmt.Println(userPrompt)
+
+	response, err := client.AskGPT("", []string{userPrompt})
 	if err != nil {
 		util.Fatalf("error getting workout recommendation: %v\n", err)
 	}
@@ -258,8 +277,10 @@ func Main() {
 	case "recent":
 		showLastActivities(dbh)
 	case "next":
-		askAI(dbh, "next", nil)
+		askAI(dbh, "next", []string{"header", "next", "spec_input", "spec_output"}, nil)
 	case "ask":
-		askAI(dbh, "ask", []string{strings.Join(os.Args[2:], " ")})
+		askAI(dbh, "ask", []string{"header", "ask", "spec_input"}, []string{strings.Join(os.Args[2:], " ")})
+	case "tune":
+		tuneAI()
 	}
 }

@@ -1,6 +1,6 @@
-## First user message: athletic profile
+{{define "spec_input"}}## First user message: athletic profile
 
-The first message you receive will be a JSON object that conforms to the following schema:
+The first message {{if .}}you receive{{else}}the LLM receives{{end}} will be a JSON object that conforms to the following schema:
 
 - **Profile**: The top-level object, representing a user's athletic profile.
   - `cycling_constraints`: Constraints related to cycling training.
@@ -38,7 +38,7 @@ All distances are unsigned integers, and JSON uses camelCase field names.
 
 ## Second user message: recent activities
 
-The second message you receive will be a JSON array of recent activities. Each activity has:
+The second message {{if .}}you receive{{else}}the LLM receives{{end}} will be a JSON array of recent activities. Each activity has:
 
 - `time`: ISO 8601 timestamp of when the activity occurred
 - `duration`: Activity duration in seconds (integer)
@@ -83,4 +83,4 @@ The second message you receive will be a JSON array of recent activities. Each a
     "was_recommended": true
   }
 ]
-```
+```{{end}}

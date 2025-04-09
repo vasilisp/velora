@@ -10,39 +10,6 @@ Your current task is as follows:
 - Evaluate if the user's recent activities pose a risk of overtraining.
 - Mix the activities with rest days to ensure proper recovery and prevent injury.
 
-{{ template "inputspec" . }}
+{{ template "spec_input" true }}
 
-## Output
-
-The output should be a JSON list, where each item conforms to the following schema:
-
-- `date`: date in ISO 8061 format, without time
-- `sport`: one of "cycling", "running", or "rest"
-- `distance`: recommended distance in meters
-- `intensity`: one of "easy", "medium", "hard"
-
-### Example output
-
-```
-[
-  {
-    "date": "2024-04-08",
-    "sport": "cycling",
-    "distance": 35000,
-    "intensity": "medium"
-  },
-  {
-    "date": "2024-04-09",
-    "sport": "running",
-    "distance": 8000,
-    "intensity": "easy"
-  },
-  {
-    "date": "2024-04-10",
-    "sport": "cycling",
-    "distance": 25000,
-    "intensity": "hard"
-  }
-]
-```
-{{end}}
+{{ template "spec_output" . }}{{end}}

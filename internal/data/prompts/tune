@@ -1,0 +1,17 @@
+{{define "tune"}}I would like you to help me build a good training dataset for
+my fitness tracker and coaching assistant.
+
+Below I describe the user data formats sent to the LLM at inference time.
+Please examine the input and output formats carefully and produce a JSONL list
+that includes 100 high-quality examples. 50 of them should include the system
+prompt and 50 not. The examples should be varied, e.g., include training data
+from inexperienced athletes all the way to elite cyclists and triathletes, and
+cover all disciplines and mixes thereof.
+
+I will use the training dataset to fine-tune an LLM for better performance.
+
+The format should be JSONL as expected by Hugging Face.
+
+{{ template "spec_input" false }}
+
+{{ template "spec_input" . }}{{end}}
