@@ -49,8 +49,10 @@ The second message {{if .}}you receive{{else}}the LLM receives{{end}} will be a 
 - `distance`: Distance covered in meters (integer)
 - `sport`: Sport type ("running", "cycling", or "swimming")
 - `vertical_gain`: Elevation gain in meters (integer)
+{{- if .}}
 - `notes`: Free-form text notes (string)
 - `was_recommended`: Whether this activity was recommended by the system (boolean)
+{{end}}
 
 ### Example JSON
 
@@ -63,8 +65,10 @@ The second message {{if .}}you receive{{else}}the LLM receives{{end}} will be a 
     "distance": 25000,
     "sport": "cycling",
     "vertical_gain": 350,
+    {{- if .}}
     "notes": "Evening ride, felt good despite headwind",
     "was_recommended": true
+    {{end}}
   },
   {
     "time": "2024-01-13T09:15:00Z",
@@ -72,8 +76,10 @@ The second message {{if .}}you receive{{else}}the LLM receives{{end}} will be a 
     "distance": 7500,
     "sport": "running",
     "vertical_gain": 120,
+    {{- if .}}
     "notes": "Morning run in the park",
     "was_recommended": false
+    {{end}}
   },
   {
     "time": "2024-01-12T17:00:00Z",
@@ -82,8 +88,10 @@ The second message {{if .}}you receive{{else}}the LLM receives{{end}} will be a 
     "distance": 22000,
     "sport": "cycling",
     "vertical_gain": 280,
+    {{- if .}}
     "notes": "Indoor trainer session",
     "was_recommended": true
+    {{end}}
   }
 ]
 ```{{end}}
