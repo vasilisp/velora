@@ -1,4 +1,4 @@
-{{define "spec_input"}}## First user message: athletic profile
+{{define "spec_input"}}## User message: athletic profile and recent activities
 
 The first message {{if .}}you receive{{else}}the LLM receives{{end}} will be a JSON object that conforms to the following schema:
 
@@ -6,6 +6,7 @@ The first message {{if .}}you receive{{else}}the LLM receives{{end}} will be a J
   - `cycling_constraints`: Constraints related to cycling training.
   - `running_constraints`: Constraints related to running training.
   - `ftp`: The user's functional threshold power (FTP), expressed as an unsigned integer (in watts).
+  - `activities`: A JSON list containing the user's recent activities.
 
 Each of `cycling_constraints` and `running_constraints` is a **SportConstraints** object with:
 
@@ -14,6 +15,19 @@ Each of `cycling_constraints` and `running_constraints` is a **SportConstraints*
 - `target_distance_date`: Date when the user wants to meet the `target_distance` goal, in ISO 8061 format (without time).
 - `allowed_days`: A list of strings representing available training days. Each day is capitalized (e.g., `"Monday"`, `"Tuesday"`).
 - `trains_indoors`: Boolean indicating if the user trains indoors.
+
+Each element in `activities` is an **Activity** object with:
+
+- `time`: ISO 8601 timestamp of when the activity occurred
+- `duration`: Activity duration in seconds (integer)
+- `duration_total`: Total duration including breaks in seconds (integer, optional)
+- `distance`: Distance covered in meters (integer)
+- `sport`: Sport type ("running", "cycling", or "swimming")
+- `vertical_gain`: Elevation gain in meters (integer)
+{{- if .}}
+- `notes`: Free-form text notes (string)
+- `was_recommended`: Whether this activity was recommended by the system (boolean)
+{{end}}
 
 All distances are unsigned integers, and JSON uses camelCase field names.
 
@@ -35,63 +49,43 @@ All distances are unsigned integers, and JSON uses camelCase field names.
     "allowed_days": ["Wednesday", "Thursday", "Saturday", "Sunday"],
     "trains_indoors": false
   },
-  "ftp": 260
+  "ftp": 260,
+  "activities": [
+    {
+      "time": "2024-01-15T18:30:00Z",
+      "duration": 3600,
+      "duration_total": 3720,
+      "distance": 25000,
+      "sport": "cycling",
+      "vertical_gain": 350,
+      {{- if .}}
+      "notes": "Evening ride, felt good despite headwind",
+      "was_recommended": true
+      {{end}}
+    },
+    {
+      "time": "2024-01-13T09:15:00+01:00",
+      "duration": 2700,
+      "distance": 7500,
+      "sport": "running",
+      "vertical_gain": 120,
+      {{- if .}}
+      "notes": "Morning run in the park",
+      "was_recommended": false
+      {{end}}
+    },
+    {
+      "time": "2024-01-12T17:00:00Z",
+      "duration": 3300,
+      "duration_total": 3600,
+      "distance": 22000,
+      "sport": "cycling",
+      "vertical_gain": 280,
+      {{- if .}}
+      "notes": "Indoor trainer session",
+      "was_recommended": true
+      {{end}}
+    }
+  ]
 }
-```
-
-## Second user message: recent activities
-
-The second message {{if .}}you receive{{else}}the LLM receives{{end}} will be a JSON array of recent activities. Each activity has:
-
-- `time`: ISO 8601 timestamp of when the activity occurred
-- `duration`: Activity duration in seconds (integer)
-- `duration_total`: Total duration including breaks in seconds (integer, optional)
-- `distance`: Distance covered in meters (integer)
-- `sport`: Sport type ("running", "cycling", or "swimming")
-- `vertical_gain`: Elevation gain in meters (integer)
-{{- if .}}
-- `notes`: Free-form text notes (string)
-- `was_recommended`: Whether this activity was recommended by the system (boolean)
-{{end}}
-
-### Example JSON
-
-```
-[
-  {
-    "time": "2024-01-15T18:30:00Z",
-    "duration": 3600,
-    "duration_total": 3720,
-    "distance": 25000,
-    "sport": "cycling",
-    "vertical_gain": 350,
-    {{- if .}}
-    "notes": "Evening ride, felt good despite headwind",
-    "was_recommended": true
-    {{end}}
-  },
-  {
-    "time": "2024-01-13T09:15:00Z",
-    "duration": 2700,
-    "distance": 7500,
-    "sport": "running",
-    "vertical_gain": 120,
-    {{- if .}}
-    "notes": "Morning run in the park",
-    "was_recommended": false
-    {{end}}
-  },
-  {
-    "time": "2024-01-12T17:00:00Z",
-    "duration": 3300,
-    "duration_total": 3600,
-    "distance": 22000,
-    "sport": "cycling",
-    "vertical_gain": 280,
-    {{- if .}}
-    "notes": "Indoor trainer session",
-    "was_recommended": true
-    {{end}}
-  }
-]
 ```{{end}}

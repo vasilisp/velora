@@ -181,7 +181,12 @@ func executeTemplate(templateName string, allTemplates []string) (string, error)
 	return systemPrompt.String(), nil
 }
 
-func userPromptData(dbh *sql.DB) ([]string, error) {
+type UserPromptData struct {
+	profile.Profile
+	Activities []db.ActivityUnsafe `json:"activities"`
+}
+
+func userPromptData(dbh *sql.DB) (string, error) {
 	util.Assert(dbh != nil, "userPromptData nil dbh")
 
 	activities, err := db.LastActivities(dbh, 10)
@@ -189,30 +194,30 @@ func userPromptData(dbh *sql.DB) ([]string, error) {
 		util.Fatalf("error getting last activities: %v\n", err)
 	}
 
-	activityMessage, err := json.MarshalIndent(activities, "", "  ")
+	profilePath := filepath.Join(os.Getenv("HOME"), ".velora", "prefs.json")
+	profileBytes := []byte{}
+
+	profileBytes, err = os.ReadFile(profilePath)
 	if err != nil {
-		util.Fatalf("error marshalling activities: %v\n", err)
+		util.Fatalf("error reading profile: %v\n", err)
 	}
 
-	prefsPath := filepath.Join(os.Getenv("HOME"), ".velora", "prefs.json")
-	prefsBytes := []byte{}
-	if prefs, err := os.ReadFile(prefsPath); err == nil {
-		var p profile.Profile
-		if err := json.Unmarshal(prefs, &p); err != nil {
-			util.Fatalf("error unmarshalling prefs: %v\n", err)
-		}
-		prefsBytes, err = json.MarshalIndent(p, "", "  ")
-		if err != nil {
-			util.Fatalf("error marshalling prefs: %v\n", err)
-		}
+	var p profile.Profile
+	if err := json.Unmarshal(profileBytes, &p); err != nil {
+		util.Fatalf("error unmarshalling profile: %v\n", err)
 	}
 
-	userPrompt := []string{
-		string(prefsBytes),
-		string(activityMessage),
+	userPromptData := UserPromptData{
+		Profile:    p,
+		Activities: activities,
 	}
 
-	return userPrompt, nil
+	userPromptDataBytes, err := json.MarshalIndent(userPromptData, "", "  ")
+	if err != nil {
+		util.Fatalf("error marshalling user prompt data: %v\n", err)
+	}
+
+	return string(userPromptDataBytes), nil
 }
 
 func askAI(dbh *sql.DB, mode string, systemPromptTemplates []string, userPromptExtra []string) {
@@ -229,7 +234,7 @@ func askAI(dbh *sql.DB, mode string, systemPromptTemplates []string, userPromptE
 	if err != nil {
 		util.Fatalf("error getting user prompt: %v\n", err)
 	}
-	userPrompt := append(userPromptData, userPromptExtra...)
+	userPrompt := append([]string{userPromptData}, userPromptExtra...)
 
 	response, err := client.AskGPT(systemPrompt, userPrompt)
 	if err != nil {
