@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"path/filepath"
 	"strconv"
 	"strings"
 	"text/template"
@@ -14,8 +13,8 @@ import (
 
 	"github.com/vasilisp/velora/internal/data"
 	"github.com/vasilisp/velora/internal/db"
+	"github.com/vasilisp/velora/internal/fitness"
 	"github.com/vasilisp/velora/internal/langchain"
-	"github.com/vasilisp/velora/internal/profile"
 	"github.com/vasilisp/velora/internal/util"
 )
 
@@ -181,43 +180,17 @@ func executeTemplate(templateName string, allTemplates []string) (string, error)
 	return systemPrompt.String(), nil
 }
 
-type UserPromptData struct {
-	profile.Profile
-	Activities []db.ActivityUnsafe `json:"activities"`
-}
+func fitnessData(dbh *sql.DB) (string, error) {
+	util.Assert(dbh != nil, "fitnessData nil dbh")
 
-func userPromptData(dbh *sql.DB) (string, error) {
-	util.Assert(dbh != nil, "userPromptData nil dbh")
+	fitnessData := fitness.Read(dbh)
 
-	activities, err := db.LastActivities(dbh, 10)
+	fitnessBytes, err := json.MarshalIndent(fitnessData, "", "  ")
 	if err != nil {
-		util.Fatalf("error getting last activities: %v\n", err)
+		util.Fatalf("error marshalling fitness data: %v\n", err)
 	}
 
-	profilePath := filepath.Join(os.Getenv("HOME"), ".velora", "prefs.json")
-	profileBytes := []byte{}
-
-	profileBytes, err = os.ReadFile(profilePath)
-	if err != nil {
-		util.Fatalf("error reading profile: %v\n", err)
-	}
-
-	var p profile.Profile
-	if err := json.Unmarshal(profileBytes, &p); err != nil {
-		util.Fatalf("error unmarshalling profile: %v\n", err)
-	}
-
-	userPromptData := UserPromptData{
-		Profile:    p,
-		Activities: activities,
-	}
-
-	userPromptDataBytes, err := json.MarshalIndent(userPromptData, "", "  ")
-	if err != nil {
-		util.Fatalf("error marshalling user prompt data: %v\n", err)
-	}
-
-	return string(userPromptDataBytes), nil
+	return string(fitnessBytes), nil
 }
 
 func askAI(dbh *sql.DB, mode string, systemPromptTemplates []string, userPromptExtra []string) {
@@ -230,11 +203,11 @@ func askAI(dbh *sql.DB, mode string, systemPromptTemplates []string, userPromptE
 		util.Fatalf("error getting system prompt: %v\n", err)
 	}
 
-	userPromptData, err := userPromptData(dbh)
+	fitnessData, err := fitnessData(dbh)
 	if err != nil {
-		util.Fatalf("error getting user prompt: %v\n", err)
+		util.Fatalf("error getting fitness data: %v\n", err)
 	}
-	userPrompt := append([]string{userPromptData}, userPromptExtra...)
+	userPrompt := append([]string{fitnessData}, userPromptExtra...)
 
 	response, err := client.AskGPT(systemPrompt, userPrompt)
 	if err != nil {

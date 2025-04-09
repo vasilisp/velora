@@ -3,6 +3,8 @@ package profile
 import (
 	"encoding/json"
 	"fmt"
+	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -137,4 +139,21 @@ type Profile struct {
 	CyclingConstraints SportConstraints `json:"cycling_constraints"`
 	RunningConstraints SportConstraints `json:"running_constraints"`
 	FTP                uint             `json:"ftp"`
+}
+
+func Read() Profile {
+	profilePath := filepath.Join(os.Getenv("HOME"), ".velora", "prefs.json")
+	profileBytes := []byte{}
+
+	profileBytes, err := os.ReadFile(profilePath)
+	if err != nil {
+		util.Fatalf("error reading profile: %v\n", err)
+	}
+
+	var p Profile
+	if err := json.Unmarshal(profileBytes, &p); err != nil {
+		util.Fatalf("error unmarshalling profile: %v\n", err)
+	}
+
+	return p
 }
