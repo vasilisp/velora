@@ -246,7 +246,6 @@ func tuneAI() {
 	if err != nil {
 		util.Fatalf("error getting user prompt: %v\n", err)
 	}
-	fmt.Println(userPrompt)
 
 	response, err := client.AskGPT("", []string{userPrompt})
 	if err != nil {
