@@ -11,6 +11,7 @@ Each of `cycling_constraints` and `running_constraints` is a **SportConstraints*
 
 - `target_weekly_distance`: Total weekly training distance goal (unsigned integer in meters). Note that a week starts on Monday and ends on Sunday.
 - `target_distance`: Target distance for a single session (unsigned integer in meters).
+- `target_distance_date`: Date when the user wants to meet the `target_distance` goal, in ISO 8061 format (without time).
 - `allowed_days`: A list of strings representing available training days. Each day is capitalized (e.g., `"Monday"`, `"Tuesday"`).
 - `trains_indoors`: Boolean indicating if the user trains indoors.
 
@@ -23,12 +24,14 @@ All distances are unsigned integers, and JSON uses camelCase field names.
   "cycling_constraints": {
     "target_weekly_distance": 150,
     "target_distance": 40,
+    "target_distance_date": "2025-08-15",
     "allowed_days": ["Monday", "Tuesday", "Friday"],
     "trains_indoors": true
   },
   "running_constraints": {
     "target_weekly_distance": 20,
-    "target_distance": 5,
+    "target_distance": 10,
+    "target_distance_date": "2025-10-15",
     "allowed_days": ["Wednesday", "Thursday", "Saturday", "Sunday"],
     "trains_indoors": false
   },

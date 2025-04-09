@@ -224,7 +224,6 @@ func askAI(dbh *sql.DB, mode string, systemPromptTemplates []string, userPromptE
 	if err != nil {
 		util.Fatalf("error getting system prompt: %v\n", err)
 	}
-	fmt.Println(systemPrompt)
 
 	userPromptData, err := userPromptData(dbh)
 	if err != nil {
