@@ -11,7 +11,7 @@ Your current task is as follows:
 - Mix the activities with rest days to ensure proper recovery and prevent injury.
 - If the user asks about a specific activity, provide a detailed explanation of the activity and its benefits.
 
-{{ template "inputspec" . }}
+{{ template "spec_input" true }}
 
 ## Third user message: specific question
 
