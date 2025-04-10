@@ -9,49 +9,6 @@ import (
 	"golang.org/x/text/unicode/norm"
 )
 
-type DayOfWeek int
-
-const (
-	Monday DayOfWeek = iota
-	Tuesday
-	Wednesday
-	Thursday
-	Friday
-	Saturday
-	Sunday
-)
-
-func (d DayOfWeek) String() (string, error) {
-	switch d {
-	case Monday:
-		return "Monday", nil
-	case Tuesday:
-		return "Tuesday", nil
-	case Wednesday:
-		return "Wednesday", nil
-	case Thursday:
-		return "Thursday", nil
-	case Friday:
-		return "Friday", nil
-	case Saturday:
-		return "Saturday", nil
-	case Sunday:
-		return "Sunday", nil
-	default:
-		return "", fmt.Errorf("invalid day of week: %d", d)
-	}
-}
-
-var AllDays = []DayOfWeek{
-	Monday,
-	Tuesday,
-	Wednesday,
-	Thursday,
-	Friday,
-	Saturday,
-	Sunday,
-}
-
 func Fatalf(format string, v ...any) {
 	fmt.Fprintf(os.Stderr, format, v...)
 	os.Exit(1)
@@ -61,15 +18,6 @@ func Assert(condition bool, message string) {
 	if !condition {
 		Fatalf("assertion failed: %s", message)
 	}
-}
-
-func FormatDuration(seconds int) string {
-	hours := seconds / 3600
-	minutes := (seconds % 3600) / 60
-	if hours > 0 {
-		return fmt.Sprintf("%dh%02dm", hours, minutes)
-	}
-	return fmt.Sprintf("%dm", minutes)
 }
 
 func FormatDistance(meters int) string {
