@@ -1,0 +1,5 @@
+{{define "plan_json"}}
+
+Please provide your proposed plan in machine-readable JSON.
+
+{{ template "spec_output" . }}{{end}}

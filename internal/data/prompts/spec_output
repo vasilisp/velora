@@ -11,7 +11,7 @@ No output is expected beyond the JSON list. No explanations or Markdown formatti
 
 ### Example output
 
-```
+(output starts here; do not include this line)
 [
   {
     "date": "2024-04-08",
@@ -32,4 +32,4 @@ No output is expected beyond the JSON list. No explanations or Markdown formatti
     "intensity": "hard"
   }
 ]
-```{{end}}
+{{end}}

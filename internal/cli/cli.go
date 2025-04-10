@@ -12,6 +12,7 @@ import (
 	"github.com/vasilisp/velora/internal/db"
 	"github.com/vasilisp/velora/internal/fitness"
 	"github.com/vasilisp/velora/internal/langchain"
+	"github.com/vasilisp/velora/internal/plan"
 	"github.com/vasilisp/velora/internal/util"
 )
 
@@ -91,7 +92,20 @@ func addActivityAI(dbh *sql.DB, args []string) {
 		util.Fatalf("error getting system prompt: %v\n", err)
 	}
 
-	response, err := client.AskGPT(systemPrompt, []string{"Today is " + time.Now().Format("2006-01-02"), userPrompt})
+	response, err := client.AskGPT([]langchain.Message{
+		{
+			Role:    langchain.MessageTypeSystem,
+			Content: systemPrompt,
+		},
+		{
+			Role:    langchain.MessageTypeHuman,
+			Content: "Today is " + time.Now().Format("2006-01-02"),
+		},
+		{
+			Role:    langchain.MessageTypeHuman,
+			Content: userPrompt,
+		},
+	})
 	if err != nil {
 		util.Fatalf("error getting activity: %v\n", err)
 	}
@@ -166,11 +180,29 @@ func askAI(dbh *sql.DB, mode string, systemPromptTemplates []string, userPromptE
 	if err != nil {
 		util.Fatalf("error getting fitness data: %v\n", err)
 	}
-	userPrompt := append([]string{fitnessData}, userPromptExtra...)
 
-	response, err := client.AskGPT(systemPrompt, userPrompt)
+	messages := make([]langchain.Message, len(userPromptExtra)+2)
+
+	messages[0] = langchain.Message{
+		Role:    langchain.MessageTypeSystem,
+		Content: systemPrompt,
+	}
+
+	messages[1] = langchain.Message{
+		Role:    langchain.MessageTypeHuman,
+		Content: string(fitnessData),
+	}
+
+	for i, prompt := range userPromptExtra {
+		messages[i+2] = langchain.Message{
+			Role:    langchain.MessageTypeHuman,
+			Content: prompt,
+		}
+	}
+
+	response, err := client.AskGPT(messages)
 	if err != nil {
-		util.Fatalf("error getting workout recommendation: %v\n", err)
+		util.Fatalf("error getting response: %v\n", err)
 	}
 
 	fmt.Println(util.SanitizeOutput(response, false))
@@ -184,12 +216,25 @@ func tuneAI() {
 		util.Fatalf("error getting user prompt: %v\n", err)
 	}
 
-	response, err := client.AskGPT("", []string{userPrompt})
+	response, err := client.AskGPT([]langchain.Message{
+		{
+			Role:    langchain.MessageTypeHuman,
+			Content: userPrompt,
+		},
+	})
 	if err != nil {
 		util.Fatalf("error getting workout recommendation: %v\n", err)
 	}
 
 	fmt.Println(util.SanitizeOutput(response, false))
+}
+
+func planMultiStep(dbh *sql.DB) {
+	client := langChainClient()
+	fitness := fitness.Read(dbh)
+	planner := plan.NewPlanner(client, fitness)
+
+	planner.MultiStep()
 }
 
 func Main() {
@@ -213,6 +258,8 @@ func Main() {
 		showLastActivities(dbh)
 	case "next":
 		askAI(dbh, "next", []string{"header", "next", "spec_input", "spec_output"}, nil)
+	case "plan-multistep":
+		planMultiStep(dbh)
 	case "ask":
 		askAI(dbh, "ask", []string{"header", "ask", "spec_input"}, []string{strings.Join(os.Args[2:], " ")})
 	case "tune":

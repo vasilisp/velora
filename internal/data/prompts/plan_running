@@ -1,0 +1,8 @@
+{{define "plan_running"}}Your current task is as follows:
+
+## Plan Running Workouts for the Next 3 Days
+
+Given the data you received and your expertise on running and fitness, propose
+running workouts that will help me meet my short-term and long-term running
+goals. Please pick at most one workout for every day and suggest rest days if
+appropriate. For every day I need a suggested distance and intensity.{{end}}
