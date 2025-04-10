@@ -6,7 +6,9 @@ The first message {{if .}}you receive{{else}}the LLM receives{{end}} will be a J
   - `cycling_constraints`: Constraints related to cycling training.
   - `running_constraints`: Constraints related to running training.
   - `ftp`: The user's functional threshold power (FTP), expressed as an unsigned integer (in watts).
-  - `activities`: A JSON list containing the user's recent activities.
+  - `activities_this_week`: A JSON list containing the user's activities this week (since Monday).
+  - `activities_last_week`: A JSON list containing the user's activities last week.
+  - `activities_older`: A JSON list containing the user's older activities.
 
 Each of `cycling_constraints` and `running_constraints` is a **SportConstraints** object with:
 
@@ -54,9 +56,9 @@ All distances are unsigned integers, and JSON uses camelCase field names.
     "trains_indoors": false
   },
   "ftp": 260,
-  "activities": [
+  "activities_this_week": [
     {
-      "time": "2024-01-15T18:30:00Z",
+      "time": "2024-04-08T18:30:00Z",
       "duration": 3600,
       "duration_total": 3720,
       "distance": 25000,
@@ -68,7 +70,7 @@ All distances are unsigned integers, and JSON uses camelCase field names.
       {{end}}
     },
     {
-      "time": "2024-01-13T09:15:00+01:00",
+      "time": "2024-04-09T09:15:00+01:00",
       "duration": 2700,
       "distance": 7500,
       "sport": "running",
@@ -79,7 +81,7 @@ All distances are unsigned integers, and JSON uses camelCase field names.
       {{end}}
     },
     {
-      "time": "2024-01-12T17:00:00Z",
+      "time": "2024-04-10T17:00:00Z",
       "duration": 3300,
       "duration_total": 3600,
       "distance": 22000,
@@ -87,6 +89,56 @@ All distances are unsigned integers, and JSON uses camelCase field names.
       "vertical_gain": 280,
       {{- if .}}
       "notes": "Indoor trainer session",
+      "was_recommended": true
+      {{end}}
+    }
+  ],
+  "activities_last_week": [
+    {
+      "time": "2024-04-01T07:00:00Z",
+      "duration": 3000,
+      "distance": 8000,
+      "sport": "running",
+      "vertical_gain": 100,
+      {{- if .}}
+      "notes": "Easy morning run",
+      "was_recommended": false
+      {{end}}
+    },
+    {
+      "time": "2024-04-03T16:45:00Z",
+      "duration": 4500,
+      "duration_total": 4800,
+      "distance": 35000,
+      "sport": "cycling",
+      "vertical_gain": 450,
+      {{- if .}}
+      "notes": "Long ride after work",
+      "was_recommended": true
+      {{end}}
+    }
+  ],
+  "activities_older": [
+    {
+      "time": "2024-03-25T08:30:00Z",
+      "duration": 2400,
+      "distance": 6500,
+      "sport": "running",
+      "vertical_gain": 80,
+      {{- if .}}
+      "notes": "Recovery run",
+      "was_recommended": false
+      {{end}}
+    },
+    {
+      "time": "2024-03-27T17:30:00Z",
+      "duration": 3600,
+      "duration_total": 3900,
+      "distance": 28000,
+      "sport": "cycling",
+      "vertical_gain": 320,
+      {{- if .}}
+      "notes": "Tempo ride on trainer",
       "was_recommended": true
       {{end}}
     }
