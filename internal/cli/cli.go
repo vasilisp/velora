@@ -1,17 +1,14 @@
 package cli
 
 import (
-	"bytes"
 	"database/sql"
 	"encoding/json"
 	"fmt"
 	"os"
 	"strconv"
 	"strings"
-	"text/template"
 	"time"
 
-	"github.com/vasilisp/velora/internal/data"
 	"github.com/vasilisp/velora/internal/db"
 	"github.com/vasilisp/velora/internal/fitness"
 	"github.com/vasilisp/velora/internal/langchain"
@@ -82,25 +79,6 @@ func addActivity(dbh *sql.DB, args []string) {
 	}
 }
 
-func systemPromptAdd() (string, error) {
-	fsys, err := data.PromptFS()
-	if err != nil {
-		util.Fatalf("error getting prompt FS: %v\n", err)
-	}
-
-	t, err := template.ParseFS(fsys, "header", "add")
-	if err != nil {
-		util.Fatalf("error parsing template: %v\n", err)
-	}
-
-	var systemPrompt bytes.Buffer
-	if err := t.ExecuteTemplate(&systemPrompt, "add", nil); err != nil {
-		util.Fatalf("error executing template: %v\n", err)
-	}
-
-	return systemPrompt.String(), nil
-}
-
 func addActivityAI(dbh *sql.DB, args []string) {
 	util.Assert(len(args) == 1, "Usage: velora addai <description>")
 
@@ -108,7 +86,7 @@ func addActivityAI(dbh *sql.DB, args []string) {
 
 	userPrompt := strings.Join(args, " ")
 
-	systemPrompt, err := systemPromptAdd()
+	systemPrompt, err := util.ExecuteTemplate("add", []string{"header", "add"})
 	if err != nil {
 		util.Fatalf("error getting system prompt: %v\n", err)
 	}
@@ -161,25 +139,6 @@ func showLastActivities(dbh *sql.DB) {
 	}
 }
 
-func executeTemplate(templateName string, allTemplates []string) (string, error) {
-	fsys, err := data.PromptFS()
-	if err != nil {
-		util.Fatalf("error getting prompt FS: %v\n", err)
-	}
-
-	t, err := template.ParseFS(fsys, allTemplates...)
-	if err != nil {
-		util.Fatalf("error parsing template: %v\n", err)
-	}
-
-	var systemPrompt bytes.Buffer
-	if err := t.ExecuteTemplate(&systemPrompt, templateName, nil); err != nil {
-		util.Fatalf("error executing template: %v\n", err)
-	}
-
-	return systemPrompt.String(), nil
-}
-
 func fitnessData(dbh *sql.DB) (string, error) {
 	util.Assert(dbh != nil, "fitnessData nil dbh")
 
@@ -198,7 +157,7 @@ func askAI(dbh *sql.DB, mode string, systemPromptTemplates []string, userPromptE
 
 	client := langChainClient()
 
-	systemPrompt, err := executeTemplate(mode, systemPromptTemplates)
+	systemPrompt, err := util.ExecuteTemplate(mode, systemPromptTemplates)
 	if err != nil {
 		util.Fatalf("error getting system prompt: %v\n", err)
 	}
@@ -220,7 +179,7 @@ func askAI(dbh *sql.DB, mode string, systemPromptTemplates []string, userPromptE
 func tuneAI() {
 	client := langChainClient()
 
-	userPrompt, err := executeTemplate("tune", []string{"tune", "header", "spec_input", "spec_output"})
+	userPrompt, err := util.ExecuteTemplate("tune", []string{"tune", "header", "spec_input", "spec_output"})
 	if err != nil {
 		util.Fatalf("error getting user prompt: %v\n", err)
 	}
