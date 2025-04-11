@@ -1,10 +1,18 @@
-{{define "plan_combine"}} I previously asked for separate recommendations for
+{{define "plan_combine"}}I previously asked for separate recommendations for
 cycling and running. Now I’d like a combined workout plan that balances my goals
 in both sports.
 
 ## 3-Day Combined Plan: Cycling + Running
 
-Recommend one workout per day, prioritizing based on impact and recovery needs.
+Plan cycling workouts only on: {{range $index, $day := .allowedCycling }}{{- if $index }}, {{end}}{{$day}}{{- end}}.
+{{if gt (len .disallowedCycling) 0 }}
+Do not plan any cycling workouts on: {{range $index, $day := .disallowedCycling }}{{- if $index }}, {{end}}{{$day}}{{- end}}.
+{{end}}
+Plan running workouts only on: {{range $index, $day := .allowedRunning }}{{- if $index }}, {{end}}{{$day}}{{- end}}.
+{{if gt (len .disallowedRunning) 0 }}
+Do not plan any running  workouts on: {{range $index, $day := .disallowedRunning }}{{- if $index }}, {{end}}{{$day}}{{- end}}.
+{{end}}
+Recommend one workout per day **in total across all sports**, prioritizing based on impact and recovery needs.
 
 - Reassign or adjust any pre-scheduled workouts (including distances) to better meet overall goals.
 - Aim for a balanced routine across both sports.

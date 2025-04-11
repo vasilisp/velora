@@ -1,7 +1,11 @@
 {{define "plan_cycling"}}Your task:
 
-## Plan Cycling Workouts for the Next 3 Days
+## Plan Cycling Workouts
 
+Plan workouts only on: {{range $index, $day := .allowed }}{{- if $index }}, {{end}}{{$day}}{{- end}}.
+{{if gt (len .disallowed) 0 }}
+Do not plan any workouts on: {{range $index, $day := .disallowed }}{{- if $index }}, {{end}}{{$day}}{{- end}}.
+{{end}}
 Using the data provided and your expertise in cycling and fitness, recommend
 workouts that support both my short-term and long-term goals.
 

@@ -13,6 +13,18 @@ import (
 
 type AllowedDays map[time.Weekday]struct{}
 
+type Sport uint8
+
+const (
+	Cycling Sport = iota
+	Running
+)
+
+func (s Sport) String() string {
+	util.Assert(s >= Cycling && s <= Running, "invalid sport")
+	return []string{"Cycling", "Running"}[s]
+}
+
 func (d AllowedDays) MarshalJSON() ([]byte, error) {
 	days := make([]string, 0, len(d))
 	for day := range d {
@@ -148,4 +160,33 @@ func Read() Profile {
 	}
 
 	return p
+}
+
+func (p Profile) AllowedDaysOfSport(sport Sport) AllowedDays {
+	switch sport {
+	case Cycling:
+		return p.CyclingConstraints.AllowedDays
+	case Running:
+		return p.RunningConstraints.AllowedDays
+	default:
+		util.Fatalf("invalid sport: %d", sport)
+	}
+	panic("unreachable")
+}
+
+func (p Profile) AllowedDaysAny() AllowedDays {
+	cycling := p.CyclingConstraints.AllowedDays
+	running := p.RunningConstraints.AllowedDays
+
+	result := AllowedDays{}
+
+	for day := range cycling {
+		result[day] = struct{}{}
+	}
+
+	for day := range running {
+		result[day] = struct{}{}
+	}
+
+	return result
 }

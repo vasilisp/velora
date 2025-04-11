@@ -7,7 +7,7 @@ import (
 	"github.com/vasilisp/velora/internal/data"
 )
 
-func ExecuteTemplate(templateName string, allTemplates []string) (string, error) {
+func ExecuteTemplate(templateName string, allTemplates []string, d any) (string, error) {
 	fsys, err := data.PromptFS()
 	if err != nil {
 		Fatalf("error getting prompt FS: %v\n", err)
@@ -19,7 +19,7 @@ func ExecuteTemplate(templateName string, allTemplates []string) (string, error)
 	}
 
 	var systemPrompt bytes.Buffer
-	if err := t.ExecuteTemplate(&systemPrompt, templateName, nil); err != nil {
+	if err := t.ExecuteTemplate(&systemPrompt, templateName, d); err != nil {
 		Fatalf("error executing template: %v\n", err)
 	}
 

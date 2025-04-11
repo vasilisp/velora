@@ -87,7 +87,7 @@ func addActivityAI(dbh *sql.DB, args []string) {
 
 	userPrompt := strings.Join(args, " ")
 
-	systemPrompt, err := util.ExecuteTemplate("add", []string{"header", "add"})
+	systemPrompt, err := util.ExecuteTemplate("add", []string{"header", "add"}, nil)
 	if err != nil {
 		util.Fatalf("error getting system prompt: %v\n", err)
 	}
@@ -171,7 +171,7 @@ func askAI(dbh *sql.DB, mode string, systemPromptTemplates []string, userPromptE
 
 	client := langChainClient()
 
-	systemPrompt, err := util.ExecuteTemplate(mode, systemPromptTemplates)
+	systemPrompt, err := util.ExecuteTemplate(mode, systemPromptTemplates, nil)
 	if err != nil {
 		util.Fatalf("error getting system prompt: %v\n", err)
 	}
@@ -211,7 +211,7 @@ func askAI(dbh *sql.DB, mode string, systemPromptTemplates []string, userPromptE
 func tuneAI() {
 	client := langChainClient()
 
-	userPrompt, err := util.ExecuteTemplate("tune", []string{"tune", "header", "spec_input", "spec_output"})
+	userPrompt, err := util.ExecuteTemplate("tune", []string{"tune", "header", "spec_input", "spec_output"}, nil)
 	if err != nil {
 		util.Fatalf("error getting user prompt: %v\n", err)
 	}
