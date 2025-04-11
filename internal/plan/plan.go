@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"sync"
 	"time"
 
 	"github.com/vasilisp/velora/internal/fitness"
@@ -207,26 +208,30 @@ func (p Planner) MultiStep() {
 	userPromptFitness := userPromptFitness(p.fitness)
 	userPromptCombine := userPromptCombine(daysCycling, daysRunning)
 
-	responseCycling, err := p.client.AskGPT([]langchain.Message{
-		systemPrompt,
-		userPromptFitness,
-		userPromptCycling,
-	})
-	if err != nil {
-		util.Fatalf("error getting cycling plan: %v\n", err)
+	var wg sync.WaitGroup
+	var responseCycling string
+	var responseRunning string
+
+	wg.Add(2)
+
+	askGPT := func(label string, prompt langchain.Message, response *string) {
+		defer wg.Done()
+		var err error
+		*response, err = p.client.AskGPT([]langchain.Message{
+			systemPrompt,
+			userPromptFitness,
+			prompt,
+		})
+		if err != nil {
+			util.Fatalf("error getting %s plan: %v\n", label, err)
+		}
 	}
+
+	go askGPT("cycling", userPromptCycling, &responseCycling)
+	go askGPT("running", userPromptRunning, &responseRunning)
+	wg.Wait()
 
 	fmt.Fprintf(os.Stderr, "## Cycling Draft Plan\n\n%s\n\n", responseCycling)
-
-	responseRunning, err := p.client.AskGPT([]langchain.Message{
-		systemPrompt,
-		userPromptFitness,
-		userPromptRunning,
-	})
-	if err != nil {
-		util.Fatalf("error getting running plan: %v\n", err)
-	}
-
 	fmt.Fprintf(os.Stderr, "## Running Draft Plan\n\n%s\n\n", responseRunning)
 
 	responseCombine, err := p.client.AskGPT([]langchain.Message{
