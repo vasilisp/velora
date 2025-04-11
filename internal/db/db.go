@@ -183,7 +183,7 @@ func Init() (*sql.DB, error) {
 
 	_, err = db.Exec(`CREATE TABLE IF NOT EXISTS activities (
 		id INTEGER PRIMARY KEY AUTOINCREMENT,
-		timestamp DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+		timestamp DATETIME NOT NULL CHECK(timestamp = CAST(timestamp AS INTEGER)),
 		duration INTEGER NOT NULL,
 		duration_total INTEGER NOT NULL,
 		sport TEXT CHECK (sport IN ('running', 'cycling', 'swimming')) NOT NULL,
