@@ -11,16 +11,12 @@ import (
 	"github.com/vasilisp/velora/internal/util"
 )
 
-type AllowedDays map[util.DayOfWeek]struct{}
+type AllowedDays map[time.Weekday]struct{}
 
 func (d AllowedDays) MarshalJSON() ([]byte, error) {
 	days := make([]string, 0, len(d))
 	for day := range d {
-		dayStr, err := day.String()
-		if err != nil {
-			return nil, fmt.Errorf("error marshaling day: %v", err)
-		}
-		days = append(days, dayStr)
+		days = append(days, day.String())
 	}
 	return json.Marshal(days)
 }
@@ -31,24 +27,24 @@ func (d *AllowedDays) UnmarshalJSON(data []byte) error {
 		return err
 	}
 
-	*d = make(map[util.DayOfWeek]struct{})
+	*d = make(map[time.Weekday]struct{})
 	for _, dayStr := range days {
-		var day util.DayOfWeek
+		var day time.Weekday
 		switch dayStr {
 		case "Monday":
-			day = util.Monday
+			day = time.Monday
 		case "Tuesday":
-			day = util.Tuesday
+			day = time.Tuesday
 		case "Wednesday":
-			day = util.Wednesday
+			day = time.Wednesday
 		case "Thursday":
-			day = util.Thursday
+			day = time.Thursday
 		case "Friday":
-			day = util.Friday
+			day = time.Friday
 		case "Saturday":
-			day = util.Saturday
+			day = time.Saturday
 		case "Sunday":
-			day = util.Sunday
+			day = time.Sunday
 		default:
 			return fmt.Errorf("invalid day: %s", dayStr)
 		}
@@ -71,11 +67,7 @@ func (d AllowedDays) Complement() AllowedDays {
 func (d AllowedDays) String() string {
 	var days []string
 	for day := range d {
-		dayStr, err := day.String()
-		if err != nil {
-			util.Fatalf("error getting day string: %v", err)
-		}
-		days = append(days, dayStr)
+		days = append(days, day.String())
 	}
 	return strings.Join(days, ", ")
 }

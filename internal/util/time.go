@@ -5,47 +5,14 @@ import (
 	"time"
 )
 
-type DayOfWeek int
-
-const (
-	Monday DayOfWeek = iota
-	Tuesday
-	Wednesday
-	Thursday
-	Friday
-	Saturday
-	Sunday
-)
-
-func (d DayOfWeek) String() (string, error) {
-	switch d {
-	case Monday:
-		return "Monday", nil
-	case Tuesday:
-		return "Tuesday", nil
-	case Wednesday:
-		return "Wednesday", nil
-	case Thursday:
-		return "Thursday", nil
-	case Friday:
-		return "Friday", nil
-	case Saturday:
-		return "Saturday", nil
-	case Sunday:
-		return "Sunday", nil
-	default:
-		return "", fmt.Errorf("invalid day of week: %d", d)
-	}
-}
-
-var AllDays = []DayOfWeek{
-	Monday,
-	Tuesday,
-	Wednesday,
-	Thursday,
-	Friday,
-	Saturday,
-	Sunday,
+var AllDays = []time.Weekday{
+	time.Monday,
+	time.Tuesday,
+	time.Wednesday,
+	time.Thursday,
+	time.Friday,
+	time.Saturday,
+	time.Sunday,
 }
 
 func FormatDuration(seconds int) string {
