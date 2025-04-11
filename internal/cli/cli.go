@@ -229,20 +229,16 @@ func tuneAI() {
 	fmt.Println(util.SanitizeOutput(response, false))
 }
 
-func planSingleStep(dbh *sql.DB) {
+func planWorkouts(dbh *sql.DB, multiStep bool) {
 	client := langChainClient()
 	fitness := fitness.Read(dbh)
 	planner := plan.NewPlanner(client, fitness)
 
-	planner.SingleStep()
-}
-
-func planMultiStep(dbh *sql.DB) {
-	client := langChainClient()
-	fitness := fitness.Read(dbh)
-	planner := plan.NewPlanner(client, fitness)
-
-	planner.MultiStep()
+	if multiStep {
+		planner.MultiStep()
+	} else {
+		planner.SingleStep()
+	}
 }
 
 func Main() {
@@ -265,11 +261,7 @@ func Main() {
 	case "recent":
 		showLastActivities(dbh)
 	case "plan":
-		if len(os.Args) > 2 && os.Args[2] == "--multi-step" {
-			planMultiStep(dbh)
-		} else {
-			planSingleStep(dbh)
-		}
+		planWorkouts(dbh, len(os.Args) > 2 && os.Args[2] == "--multi-step")
 	case "ask":
 		askAI(dbh, "ask", []string{"header", "ask", "spec_input"}, []string{strings.Join(os.Args[2:], " ")})
 	case "tune":
