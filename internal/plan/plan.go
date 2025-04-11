@@ -110,12 +110,12 @@ func (p Planner) MultiStep() {
 		userPromptDate,
 		userPromptFitness,
 		userPromptCycling,
-		langchain.Message{
+		{
 			Role:    langchain.MessageTypeAI,
 			Content: responseCycling,
 		},
 		userPromptRunning,
-		langchain.Message{
+		{
 			Role:    langchain.MessageTypeAI,
 			Content: responseRunning,
 		},
@@ -130,7 +130,7 @@ func (p Planner) MultiStep() {
 	responseJSON, err := p.client.AskGPT([]langchain.Message{
 		systemPrompt,
 		userPromptCombine,
-		langchain.Message{
+		{
 			Role:    langchain.MessageTypeAI,
 			Content: responseCombine,
 		},
