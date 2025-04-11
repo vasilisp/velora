@@ -24,7 +24,7 @@ need to extract from the input:
 
 (output starts here, do not include this line)
 {
-  "time": "<time">,                    // Activity start in ISO8601 extended format
+  "time": "<time>",                    // Activity start in ISO8601 extended format
   "sport": "<sport>",                  // Type of sport; one of "running", "cycling", "swimming"
   "distance": <distance>,              // Distance in meters
   "vertical_gain": <vertical_gain>,    // Vertical gain in meters
