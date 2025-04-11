@@ -4,15 +4,7 @@ in both sports.
 
 ## 3-Day Combined Plan: Cycling + Running
 
-Plan cycling workouts only on: {{range $index, $day := .allowedCycling }}{{- if $index }}, {{end}}{{$day}}{{- end}}.
-{{if gt (len .disallowedCycling) 0 }}
-Do not plan any cycling workouts on: {{range $index, $day := .disallowedCycling }}{{- if $index }}, {{end}}{{$day}}{{- end}}.
-{{end}}
-Plan running workouts only on: {{range $index, $day := .allowedRunning }}{{- if $index }}, {{end}}{{$day}}{{- end}}.
-{{if gt (len .disallowedRunning) 0 }}
-Do not plan any running  workouts on: {{range $index, $day := .disallowedRunning }}{{- if $index }}, {{end}}{{$day}}{{- end}}.
-{{end}}
-Recommend one workout per day **in total across all sports**, prioritizing based on impact and recovery needs.
+{{ template "sched_constraints_combine" . }}
 
 - Reassign or adjust any pre-scheduled workouts (including distances) to better meet overall goals.
 - Aim for a balanced routine across both sports.

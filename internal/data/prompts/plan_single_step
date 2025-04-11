@@ -1,8 +1,10 @@
-{{define "next"}}{{ template "header" . }}
+{{define "plan_single_step"}}{{ template "header" . }}
 
 Your current task is as follows:
 
 ## Plan Next 3 Days
+
+{{ template "sched_constraints_combine" . }}
 
 - Use your analysis and the user's preferences to suggest suitable activities for the next 3 days.
 - Ensure the recommendation promotes a balanced exercise routine across all sports.

@@ -1,0 +1,18 @@
+{{define "sched_constraints_combine"}}{{if gt (len .allowedCycling) 0 }}Plan cycling workouts only on:
+{{range $index, $day := .allowedCycling }}{{- if $index }}, {{end}}{{$day}}{{- end}}.
+
+{{end -}}
+{{if gt (len .disallowedCycling) 0 }}Do not plan any cycling workouts on:
+{{range $index, $day := .disallowedCycling }}{{- if $index }}, {{end}}{{$day}}{{- end}}.
+
+{{end -}}
+{{if gt (len .allowedRunning) 0 }}Plan running workouts only on:
+{{range $index, $day := .allowedRunning }}{{- if $index }}, {{end}}{{$day}}{{- end}}.
+
+{{end -}}
+{{if gt (len .disallowedRunning) 0 }}Do not plan any running workouts on:
+{{range $index, $day := .disallowedRunning }}{{- if $index }}, {{end}}{{$day}}{{- end}}.
+
+{{end -}}
+
+Recommend one workout per day **in total across all sports**, prioritizing based on impact and recovery needs.{{end}}

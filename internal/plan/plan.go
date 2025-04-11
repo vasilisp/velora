@@ -68,22 +68,20 @@ func nextThreeDays(fitness *fitness.Fitness, allowedDays profile.AllowedDays) al
 	return days
 }
 
+func FormatDates(dates []time.Time) []string {
+	formattedDates := make([]string, len(dates))
+	for i, date := range dates {
+		formattedDates[i] = date.Format("2006-01-02 (Mon)")
+	}
+	return formattedDates
+}
+
 func (p Planner) userPromptOfSport(sport profile.Sport) (langchain.Message, map[string][]string) {
 	days := nextThreeDays(&p.fitness, p.fitness.Profile.AllowedDaysOfSport(sport))
 
-	allowedDatesStr := make([]string, len(days.allowed))
-	for i, date := range days.allowed {
-		allowedDatesStr[i] = date.Format("2006-01-02 (Mon)")
-	}
-
-	disallowedDatesStr := make([]string, len(days.disallowed))
-	for i, date := range days.disallowed {
-		disallowedDatesStr[i] = date.Format("2006-01-02 (Mon)")
-	}
-
 	m := map[string][]string{
-		"allowed":    allowedDatesStr,
-		"disallowed": disallowedDatesStr,
+		"allowed":    FormatDates(days.allowed),
+		"disallowed": FormatDates(days.disallowed),
 	}
 
 	if len(days.allowed) == 0 {
@@ -115,13 +113,16 @@ func (p Planner) userPromptOfSport(sport profile.Sport) (langchain.Message, map[
 }
 
 func userPromptCombine(daysCycling map[string][]string, daysRunning map[string][]string) langchain.Message {
+	util.Assert(len(daysCycling["allowed"]) > 0 || len(daysRunning["allowed"]) > 0, "no allowed days")
+
 	m := map[string]any{
 		"allowedCycling":    daysCycling["allowed"],
 		"allowedRunning":    daysRunning["allowed"],
 		"disallowedCycling": daysCycling["disallowed"],
 		"disallowedRunning": daysRunning["disallowed"],
 	}
-	str, err := util.ExecuteTemplate("plan_combine", []string{"plan_combine"}, m)
+
+	str, err := util.ExecuteTemplate("plan_combine", []string{"plan_combine", "sched_constraints_combine"}, m)
 	if err != nil {
 		util.Fatalf("error getting combine user prompt: %v\n", err)
 	}
@@ -255,6 +256,39 @@ func (p Planner) MultiStep() {
 			Role:    langchain.MessageTypeAI,
 			Content: responseCombine,
 		},
+		userPromptJSON(),
+	})
+	if err != nil {
+		util.Fatalf("error getting JSON plan: %v\n", err)
+	}
+
+	fmt.Println(responseJSON)
+}
+
+func (p Planner) SingleStep() {
+	templates := []string{"plan_single_step", "header", "spec_input", "sched_constraints_combine", "spec_output"}
+
+	daysCycling := nextThreeDays(&p.fitness, p.fitness.Profile.AllowedDaysOfSport(profile.Cycling))
+	daysRunning := nextThreeDays(&p.fitness, p.fitness.Profile.AllowedDaysOfSport(profile.Running))
+	m := map[string]any{
+		"allowedCycling":    FormatDates(daysCycling.allowed),
+		"allowedRunning":    FormatDates(daysRunning.allowed),
+		"disallowedCycling": FormatDates(daysCycling.disallowed),
+		"disallowedRunning": FormatDates(daysRunning.disallowed),
+	}
+
+	systemPromptStr, err := util.ExecuteTemplate("plan_single_step", templates, m)
+	if err != nil {
+		util.Fatalf("error getting system prompt: %v\n", err)
+	}
+	systemPrompt := langchain.Message{
+		Role:    langchain.MessageTypeSystem,
+		Content: systemPromptStr,
+	}
+
+	responseJSON, err := p.client.AskGPT([]langchain.Message{
+		systemPrompt,
+		userPromptFitness(p.fitness),
 		userPromptJSON(),
 	})
 	if err != nil {
