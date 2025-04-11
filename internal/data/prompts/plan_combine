@@ -1,13 +1,13 @@
-{{define "plan_combine"}}
+{{define "plan_combine"}} I previously asked for separate recommendations for
+cycling and running. Now I’d like a combined workout plan that balances my goals
+in both sports.
 
-I previously asked recommendations for each of cycling and running alone. But I
-am interested in both. Please try to merge the two plans into one workout plan
-that balances my goals in both sports.
+## 3-Day Combined Plan: Cycling + Running
 
-## Plan Next 3 Days, Cycling and Running Combined
+Recommend one workout per day, prioritizing based on impact and recovery needs.
 
-- Pick at most one workout per day, based on what you think is of higher priority.
-- Ensure the recommendation promotes a balanced exercise routine across all sports.
-- Balance longer endurance sessions with shorter, more intense sessions.
-- Evaluate if the user's recent activities pose a risk of overtraining.
-- Mix the activities with rest days to ensure proper recovery and prevent injury.{{end}}
+- Reassign or adjust any pre-scheduled workouts (including distances) to better meet overall goals.
+- Aim for a balanced routine across both sports.
+- Include a mix of endurance and intensity.
+- Evaluate recent activities for overtraining risk.
+- Ensure appropriate rest and recovery to prevent injury.{{end}}
