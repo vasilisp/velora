@@ -13,6 +13,4 @@
 {{if gt (len .disallowedRunning) 0 }}Do not plan any running workouts on:
 {{range $index, $day := .disallowedRunning }}{{- if $index }}, {{end}}{{$day}}{{- end}}.
 
-{{end -}}
-
-Recommend one workout per day **in total across all sports**, prioritizing based on impact and recovery needs.{{end}}
+{{end -}}{{end}}
