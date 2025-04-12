@@ -68,7 +68,7 @@ func (c *Client) AskGPT(messages []Message) (string, error) {
 	}
 
 	// Generate completion
-	response, err := c.llm.GenerateContent(context.Background(), messagesLangchain)
+	response, err := c.llm.GenerateContent(context.Background(), messagesLangchain, llms.WithTemperature(0.2))
 	if err != nil {
 		return "", fmt.Errorf("error generating content: %v", err)
 	}
