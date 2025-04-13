@@ -13,6 +13,7 @@ import (
 	"github.com/vasilisp/velora/internal/fitness"
 	"github.com/vasilisp/velora/internal/langchain"
 	"github.com/vasilisp/velora/internal/plan"
+	"github.com/vasilisp/velora/internal/template"
 	"github.com/vasilisp/velora/internal/util"
 )
 
@@ -85,9 +86,11 @@ func addActivityAI(dbh *sql.DB, args []string) {
 
 	client := langChainClient()
 
+	templates := template.MakeParsed([]string{"header", "add"})
+
 	userPrompt := strings.Join(args, " ")
 
-	systemPrompt, err := util.ExecuteTemplate("add", []string{"header", "add"}, nil)
+	systemPrompt, err := templates.Execute("add", nil)
 	if err != nil {
 		util.Fatalf("error getting system prompt: %v\n", err)
 	}
@@ -166,12 +169,14 @@ func fitnessData(dbh *sql.DB) (string, error) {
 	return string(fitnessBytes), nil
 }
 
-func askAI(dbh *sql.DB, mode string, systemPromptTemplates []string, userPromptExtra []string) {
+func askAI(dbh *sql.DB, mode string, userPromptExtra []string) {
 	util.Assert(dbh != nil, "askAI nil dbh")
 
 	client := langChainClient()
 
-	systemPrompt, err := util.ExecuteTemplate(mode, systemPromptTemplates, nil)
+	templates := template.MakeParsed([]string{"header", "ask", "spec_input"})
+
+	systemPrompt, err := templates.Execute(mode, nil)
 	if err != nil {
 		util.Fatalf("error getting system prompt: %v\n", err)
 	}
@@ -211,7 +216,9 @@ func askAI(dbh *sql.DB, mode string, systemPromptTemplates []string, userPromptE
 func tuneAI() {
 	client := langChainClient()
 
-	userPrompt, err := util.ExecuteTemplate("tune", []string{"tune", "header", "spec_input", "spec_output"}, nil)
+	templates := template.MakeParsed([]string{"header", "spec_input", "spec_output", "tune"})
+
+	userPrompt, err := templates.Execute("tune", nil)
 	if err != nil {
 		util.Fatalf("error getting user prompt: %v\n", err)
 	}
@@ -263,7 +270,7 @@ func Main() {
 	case "plan":
 		planWorkouts(dbh, len(os.Args) > 2 && os.Args[2] == "--multi-step")
 	case "ask":
-		askAI(dbh, "ask", []string{"header", "ask", "spec_input"}, []string{strings.Join(os.Args[2:], " ")})
+		askAI(dbh, "ask", []string{strings.Join(os.Args[2:], " ")})
 	case "tune":
 		tuneAI()
 	}

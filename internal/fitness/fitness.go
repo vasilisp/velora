@@ -16,7 +16,7 @@ type Fitness struct {
 	ActivitiesOlder    []db.ActivityUnsafe `json:"activities_older"`
 }
 
-func Read(dbh *sql.DB) Fitness {
+func Read(dbh *sql.DB) *Fitness {
 	profile := profile.Read()
 	startOfWeek := util.BeginningOfWeek(time.Now())
 	startOfLastWeek := startOfWeek.AddDate(0, 0, -7)
@@ -38,7 +38,7 @@ func Read(dbh *sql.DB) Fitness {
 		}
 	}
 
-	return Fitness{
+	return &Fitness{
 		Profile:            profile,
 		ActivitiesThisWeek: thisWeek,
 		ActivitiesLastWeek: lastWeek,
