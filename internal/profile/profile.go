@@ -22,7 +22,19 @@ const (
 
 func (s Sport) String() string {
 	util.Assert(s >= Cycling && s <= Running, "invalid sport")
-	return []string{"Cycling", "Running"}[s]
+	return []string{"cycling", "running"}[s]
+}
+
+func ParseSport(s string) Sport {
+	switch s {
+	case "cycling":
+		return Cycling
+	case "running":
+		return Running
+	}
+
+	util.Fatalf("invalid sport: %s", s)
+	panic("unreachable")
 }
 
 func (d AllowedDays) MarshalJSON() ([]byte, error) {
@@ -139,10 +151,37 @@ func (sc *SportConstraints) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+type SportMap map[Sport]SportConstraints
+
+func (sm SportMap) MarshalJSON() ([]byte, error) {
+	sportsMap := make(map[string]SportConstraints)
+	for sport, constraints := range sm {
+		sportsMap[sport.String()] = constraints
+	}
+
+	return json.Marshal(sportsMap)
+}
+
+func (sm *SportMap) UnmarshalJSON(data []byte) error {
+	util.Assert(sm != nil, "sm is nil")
+	stringMap := make(map[string]SportConstraints)
+
+	if err := json.Unmarshal(data, &stringMap); err != nil {
+		return err
+	}
+
+	*sm = make(SportMap)
+	for sportStr, constraints := range stringMap {
+		sport := ParseSport(sportStr)
+		(*sm)[sport] = constraints
+	}
+
+	return nil
+}
+
 type Profile struct {
-	CyclingConstraints SportConstraints `json:"cycling_constraints"`
-	RunningConstraints SportConstraints `json:"running_constraints"`
-	FTP                uint             `json:"ftp"`
+	Sports SportMap `json:"sports"`
+	FTP    uint     `json:"ftp"`
 }
 
 func Read() Profile {
@@ -163,13 +202,13 @@ func Read() Profile {
 }
 
 func (p Profile) AllowedDaysOfSport(sport Sport) AllowedDays {
-	switch sport {
-	case Cycling:
-		return p.CyclingConstraints.AllowedDays
-	case Running:
-		return p.RunningConstraints.AllowedDays
-	default:
-		util.Fatalf("invalid sport: %d", sport)
+	return p.Sports[sport].AllowedDays
+}
+
+func (p Profile) AllSports() []Sport {
+	sports := make([]Sport, 0, len(p.Sports))
+	for sport := range p.Sports {
+		sports = append(sports, sport)
 	}
-	panic("unreachable")
+	return sports
 }

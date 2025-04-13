@@ -38,10 +38,12 @@ func Read(dbh *sql.DB) *Fitness {
 		}
 	}
 
-	return &Fitness{
+	fitness := Fitness{
 		Profile:            profile,
 		ActivitiesThisWeek: thisWeek,
 		ActivitiesLastWeek: lastWeek,
 		ActivitiesOlder:    older,
 	}
+
+	return &fitness
 }

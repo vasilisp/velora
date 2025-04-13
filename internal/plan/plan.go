@@ -156,7 +156,7 @@ func userPromptFitness(fitness *fitness.Fitness) langchain.Message {
 	}
 }
 
-func (p Planner) singleSport(userPrompt langchain.Message, sport profile.Sport) {
+func (p Planner) singleSport(sport profile.Sport, userPrompt langchain.Message) {
 	response, err := p.client.AskGPT([]langchain.Message{
 		p.systemPrompt(),
 		userPromptFitness(p.fitness),
@@ -166,7 +166,7 @@ func (p Planner) singleSport(userPrompt langchain.Message, sport profile.Sport) 
 		util.Fatalf("error getting %s sport plan: %v\n", sport.String(), err)
 	}
 
-	fmt.Fprintf(os.Stderr, "## %s Plan\n\n%s\n\n", sport.String(), util.SanitizeOutput(response, false))
+	fmt.Fprintf(os.Stderr, "## %s Plan\n\n%s\n\n", util.Capitalize(sport.String()), util.SanitizeOutput(response, false))
 
 	responseJSON, err := p.client.AskGPT([]langchain.Message{
 		userPrompt,
@@ -193,12 +193,12 @@ func (p Planner) MultiStep() {
 	}
 
 	if len(daysRunning.allowed) == 0 {
-		p.singleSport(userPromptCycling, profile.Cycling)
+		p.singleSport(profile.Cycling, userPromptCycling)
 		return
 	}
 
 	if len(daysCycling.allowed) == 0 {
-		p.singleSport(userPromptRunning, profile.Running)
+		p.singleSport(profile.Running, userPromptRunning)
 		return
 	}
 

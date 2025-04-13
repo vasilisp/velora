@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"regexp"
+	"strings"
 	"unicode"
 
 	"golang.org/x/text/unicode/norm"
@@ -54,4 +55,11 @@ func SanitizeOutput(input string, removeNewlines bool) string {
 
 	// Normalize the Unicode string to a consistent form (optional)
 	return norm.NFC.String(string(result))
+}
+
+func Capitalize(s string) string {
+	if s == "" {
+		return s
+	}
+	return strings.ToUpper(s[:1]) + strings.ToLower(s[1:])
 }
