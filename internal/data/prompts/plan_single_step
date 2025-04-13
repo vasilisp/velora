@@ -4,7 +4,7 @@ Your current task is as follows:
 
 ## Plan Next 3 Days
 
-{{ template "sched_constraints_combine" . }}
+{{ template "sched_constraints_combine" . -}}
 
 - Use your analysis and the user's preferences to suggest suitable activities for the next 3 days.
 - There should be a single sport and a single workout (or rest suggestion) per day; no multi-sport days.

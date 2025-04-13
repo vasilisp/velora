@@ -38,8 +38,13 @@ func (p Planner) systemPrompt() langchain.Message {
 }
 
 type allowedDisallowedDays struct {
-	allowed    []time.Time
-	disallowed []time.Time
+	Allowed    []time.Time
+	Disallowed []time.Time
+}
+
+type allowedDisallowedDayStrings struct {
+	Allowed    []string
+	Disallowed []string
 }
 
 func nextThreeDays(fitness *fitness.Fitness, allowedDays profile.AllowedDays) allowedDisallowedDays {
@@ -47,8 +52,8 @@ func nextThreeDays(fitness *fitness.Fitness, allowedDays profile.AllowedDays) al
 	startDate := today
 
 	days := allowedDisallowedDays{
-		allowed:    []time.Time{},
-		disallowed: []time.Time{},
+		Allowed:    []time.Time{},
+		Disallowed: []time.Time{},
 	}
 
 	// Check if there's an activity today
@@ -63,9 +68,9 @@ func nextThreeDays(fitness *fitness.Fitness, allowedDays profile.AllowedDays) al
 	for i := range 3 {
 		date := startDate.AddDate(0, 0, i)
 		if _, ok := allowedDays[date.Weekday()]; ok {
-			days.allowed = append(days.allowed, date)
+			days.Allowed = append(days.Allowed, date)
 		} else {
-			days.disallowed = append(days.disallowed, date)
+			days.Disallowed = append(days.Disallowed, date)
 		}
 	}
 
@@ -84,12 +89,12 @@ func (p Planner) userPromptOfSport(sport profile.Sport) (langchain.Message, allo
 	days := nextThreeDays(p.fitness, p.fitness.Profile.AllowedDaysOfSport(sport))
 
 	m := map[string]any{
-		"allowed":    FormatDates(days.allowed),
-		"disallowed": FormatDates(days.disallowed),
+		"allowed":    FormatDates(days.Allowed),
+		"disallowed": FormatDates(days.Disallowed),
 		"sport":      sport.String(),
 	}
 
-	if len(days.allowed) == 0 {
+	if len(days.Allowed) == 0 {
 		// no allowed days, no need to plan
 		return langchain.Message{}, days
 	}
@@ -111,17 +116,41 @@ func (p Planner) userPromptOfSport(sport profile.Sport) (langchain.Message, allo
 	}, days
 }
 
-func (p Planner) userPromptCombine(daysCycling allowedDisallowedDays, daysRunning allowedDisallowedDays) langchain.Message {
-	util.Assert(len(daysCycling.allowed) > 0 || len(daysRunning.allowed) > 0, "no allowed days")
+type sportData struct {
+	UserPrompt langchain.Message
+	Days       allowedDisallowedDays
+	Response   string
+}
 
-	m := map[string]any{
-		"allowedCycling":    daysCycling.allowed,
-		"allowedRunning":    daysRunning.allowed,
-		"disallowedCycling": daysCycling.disallowed,
-		"disallowedRunning": daysRunning.disallowed,
+func (p Planner) templateMultiSportArgs(filterUnavailable bool) map[string]any {
+	sports := make([]string, 0, len(p.fitness.Profile.AllSports()))
+	sportsCapitalized := make([]string, 0, len(sports))
+	days := make(map[string]allowedDisallowedDayStrings)
+
+	for _, sport := range p.fitness.Profile.AllSports() {
+		allowedDisallowedDays := nextThreeDays(p.fitness, p.fitness.Profile.AllowedDaysOfSport(sport))
+
+		if filterUnavailable && len(allowedDisallowedDays.Allowed) == 0 {
+			continue
+		}
+
+		sports = append(sports, sport.String())
+		sportsCapitalized = append(sportsCapitalized, util.Capitalize(sport.String()))
+		days[sport.String()] = allowedDisallowedDayStrings{
+			Allowed:    FormatDates(allowedDisallowedDays.Allowed),
+			Disallowed: FormatDates(allowedDisallowedDays.Disallowed),
+		}
 	}
 
-	str, err := p.templates.Execute("plan_combine", m)
+	return map[string]any{
+		"sports":            sports,
+		"sportsCapitalized": sportsCapitalized,
+		"days":              days,
+	}
+}
+
+func (p Planner) userPromptCombine() langchain.Message {
+	str, err := p.templates.Execute("plan_combine", p.templateMultiSportArgs(true))
 	if err != nil {
 		util.Fatalf("error getting combine user prompt: %v\n", err)
 	}
@@ -184,69 +213,75 @@ func (p Planner) singleSport(sport profile.Sport, userPrompt langchain.Message) 
 }
 
 func (p Planner) MultiStep() {
-	userPromptCycling, daysCycling := p.userPromptOfSport(profile.Cycling)
-	userPromptRunning, daysRunning := p.userPromptOfSport(profile.Running)
+	sportMap := make(map[profile.Sport]*sportData)
 
-	if len(daysCycling.allowed) == 0 && len(daysRunning.allowed) == 0 {
+	for _, sport := range p.fitness.Profile.AllSports() {
+		userPrompt, days := p.userPromptOfSport(sport)
+		if len(days.Allowed) == 0 {
+			continue
+		}
+		sportMap[sport] = &sportData{
+			UserPrompt: userPrompt,
+			Days:       days,
+			Response:   "",
+		}
+	}
+
+	switch len(sportMap) {
+	case 0:
 		fmt.Println("[]")
 		return
-	}
-
-	if len(daysRunning.allowed) == 0 {
-		p.singleSport(profile.Cycling, userPromptCycling)
-		return
-	}
-
-	if len(daysCycling.allowed) == 0 {
-		p.singleSport(profile.Running, userPromptRunning)
+	case 1:
+		for sport, data := range sportMap {
+			p.singleSport(sport, data.UserPrompt)
+		}
 		return
 	}
 
 	systemPrompt := p.systemPrompt()
 	userPromptFitness := userPromptFitness(p.fitness)
-	userPromptCombine := p.userPromptCombine(daysCycling, daysRunning)
 
 	var wg sync.WaitGroup
-	var responseCycling string
-	var responseRunning string
+	wg.Add(len(sportMap))
 
-	wg.Add(2)
-
-	askGPT := func(label string, prompt langchain.Message, response *string) {
+	askGPT := func(sport profile.Sport, sd *sportData) {
 		defer wg.Done()
 		var err error
-		*response, err = p.client.AskGPT([]langchain.Message{
+		sd.Response, err = p.client.AskGPT([]langchain.Message{
 			systemPrompt,
 			userPromptFitness,
-			prompt,
+			sd.UserPrompt,
 		})
 		if err != nil {
-			util.Fatalf("error getting %s plan: %v\n", label, err)
+			util.Fatalf("error getting %s plan: %v\n", sport.String(), err)
 		}
 	}
 
-	go askGPT("cycling", userPromptCycling, &responseCycling)
-	go askGPT("running", userPromptRunning, &responseRunning)
+	for sport := range sportMap {
+		go askGPT(sport, sportMap[sport])
+	}
+
 	wg.Wait()
 
-	fmt.Fprintf(os.Stderr, "## Cycling Draft Plan\n\n%s\n\n", util.SanitizeOutput(responseCycling, false))
-	fmt.Fprintf(os.Stderr, "## Running Draft Plan\n\n%s\n\n", util.SanitizeOutput(responseRunning, false))
+	for sport, data := range sportMap {
+		fmt.Fprintf(os.Stderr, "## %s Draft Plan\n\n%s\n\n", util.Capitalize(sport.String()), util.SanitizeOutput(data.Response, false))
+	}
 
-	responseCombine, err := p.client.AskGPT([]langchain.Message{
-		systemPrompt,
-		userPromptFitness,
-		userPromptCycling,
-		{
+	userPromptCombine := p.userPromptCombine()
+
+	messages := make([]langchain.Message, 2*len(sportMap)+3)
+	messages[0] = systemPrompt
+	messages[1] = userPromptFitness
+	for i, data := range sportMap {
+		messages[2*i+2] = data.UserPrompt
+		messages[2*i+3] = langchain.Message{
 			Role:    langchain.MessageTypeAI,
-			Content: responseCycling,
-		},
-		userPromptRunning,
-		{
-			Role:    langchain.MessageTypeAI,
-			Content: responseRunning,
-		},
-		userPromptCombine,
-	})
+			Content: data.Response,
+		}
+	}
+	messages[len(messages)-1] = userPromptCombine
+
+	responseCombine, err := p.client.AskGPT(messages)
 	if err != nil {
 		util.Fatalf("error getting combine plan: %v\n", err)
 	}
@@ -269,19 +304,11 @@ func (p Planner) MultiStep() {
 }
 
 func (p Planner) SingleStep() {
-	daysCycling := nextThreeDays(p.fitness, p.fitness.Profile.AllowedDaysOfSport(profile.Cycling))
-	daysRunning := nextThreeDays(p.fitness, p.fitness.Profile.AllowedDaysOfSport(profile.Running))
-	m := map[string]any{
-		"allowedCycling":    FormatDates(daysCycling.allowed),
-		"allowedRunning":    FormatDates(daysRunning.allowed),
-		"disallowedCycling": FormatDates(daysCycling.disallowed),
-		"disallowedRunning": FormatDates(daysRunning.disallowed),
-	}
-
-	systemPromptStr, err := p.templates.Execute("plan_single_step", m)
+	systemPromptStr, err := p.templates.Execute("plan_single_step", p.templateMultiSportArgs(false))
 	if err != nil {
 		util.Fatalf("error getting system prompt: %v\n", err)
 	}
+
 	systemPrompt := langchain.Message{
 		Role:    langchain.MessageTypeSystem,
 		Content: systemPromptStr,

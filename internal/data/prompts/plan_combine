@@ -1,17 +1,19 @@
-{{define "plan_combine"}}I previously asked for separate recommendations for
-cycling and running. Now I’d like a combined workout plan that balances my goals
-in both sports.
+{{define "plan_combine"}}I previously asked for separate recommendations for {{ "" }}
+{{- range $index, $sport := .sports}}{{if $index}}, {{end}}{{$sport}}{{end}}.
 
-## 3-Day Combined Plan: Cycling + Running
+Now I'd like a combined workout plan that balances my goals in all sports.
 
-{{ template "sched_constraints_combine" . }}
+## 3-Day Combined Plan: {{ "" }}
+{{- range $index, $sport := .sportsCapitalized}}{{if $index}}, {{end}}{{$sport}}{{end}}
+
+{{ template "sched_constraints_combine" . -}}
 
 - Reassign or adjust any pre-scheduled workouts (including distances) to better meet overall goals.
-- Aim for a balanced routine across both sports.
+- Aim for a balanced routine across all sports.
 - Include a mix of endurance and intensity.
 - Evaluate recent activities for overtraining risk.
 - Ensure appropriate rest and recovery to prevent injury.
 
 Provide one workout or rest suggestion per day (no multi-sport days). If any
-adjustments are made to the cycling-only or running-only plans, explain the
-reasons behind those changes.{{end}}
+adjustments are made to the sport-specific plans, explain the reasons behind
+those changes.{{end}}

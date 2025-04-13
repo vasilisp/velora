@@ -1,16 +1,7 @@
-{{define "sched_constraints_combine"}}{{if gt (len .allowedCycling) 0 }}Plan cycling workouts only on:
-{{range $index, $day := .allowedCycling }}{{- if $index }}, {{end}}{{$day}}{{- end}}.
+{{define "sched_constraints_combine"}}{{range $sport, $data := .days}}{{if gt (len $data.Allowed) 0 }}Plan {{$sport}} workouts only on:
+{{range $index, $day := $data.Allowed }}{{- if $index }}, {{end}}{{$day}}{{end}}.
 
-{{end -}}
-{{if gt (len .disallowedCycling) 0 }}Do not plan any cycling workouts on:
-{{range $index, $day := .disallowedCycling }}{{- if $index }}, {{end}}{{$day}}{{- end}}.
+{{end}}{{if gt (len $data.Disallowed) 0 }}Do not plan any {{$sport}} workouts on:
+{{range $index, $day := $data.Disallowed }}{{- if $index }}, {{end}}{{$day}}{{end}}.
 
-{{end -}}
-{{if gt (len .allowedRunning) 0 }}Plan running workouts only on:
-{{range $index, $day := .allowedRunning }}{{- if $index }}, {{end}}{{$day}}{{- end}}.
-
-{{end -}}
-{{if gt (len .disallowedRunning) 0 }}Do not plan any running workouts on:
-{{range $index, $day := .disallowedRunning }}{{- if $index }}, {{end}}{{$day}}{{- end}}.
-
-{{end -}}{{end}}
+{{end}}{{end}}{{end}}
