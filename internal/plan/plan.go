@@ -80,50 +80,45 @@ func FormatDates(dates []time.Time) []string {
 	return formattedDates
 }
 
-func (p Planner) userPromptOfSport(sport profile.Sport) (langchain.Message, map[string][]string) {
+func (p Planner) userPromptOfSport(sport profile.Sport) (langchain.Message, allowedDisallowedDays) {
 	days := nextThreeDays(p.fitness, p.fitness.Profile.AllowedDaysOfSport(sport))
 
-	m := map[string][]string{
+	m := map[string]any{
 		"allowed":    FormatDates(days.allowed),
 		"disallowed": FormatDates(days.disallowed),
+		"sport":      sport.String(),
 	}
 
 	if len(days.allowed) == 0 {
 		// no allowed days, no need to plan
-		return langchain.Message{}, m
+		return langchain.Message{}, days
 	}
 
 	var str string
-	var err error
-	switch sport {
-	case profile.Cycling:
-		str, err = p.templates.Execute("plan_cycling", m)
-		if err != nil {
-			util.Fatalf("error getting cycling template: %v\n", err)
-		}
-	case profile.Running:
-		str, err = p.templates.Execute("plan_running", m)
-		if err != nil {
-			util.Fatalf("error getting running template: %v\n", err)
-		}
-	default:
-		util.Fatalf("invalid sport: %d", sport)
+	templateName := fmt.Sprintf("plan_%s", sport)
+	if !p.templates.Has(templateName) {
+		templateName = "plan_sport"
+	}
+
+	str, err := p.templates.Execute(templateName, m)
+	if err != nil {
+		util.Fatalf("error executing %s template: %v\n", templateName, err)
 	}
 
 	return langchain.Message{
 		Role:    langchain.MessageTypeHuman,
 		Content: str,
-	}, m
+	}, days
 }
 
-func (p Planner) userPromptCombine(daysCycling map[string][]string, daysRunning map[string][]string) langchain.Message {
-	util.Assert(len(daysCycling["allowed"]) > 0 || len(daysRunning["allowed"]) > 0, "no allowed days")
+func (p Planner) userPromptCombine(daysCycling allowedDisallowedDays, daysRunning allowedDisallowedDays) langchain.Message {
+	util.Assert(len(daysCycling.allowed) > 0 || len(daysRunning.allowed) > 0, "no allowed days")
 
 	m := map[string]any{
-		"allowedCycling":    daysCycling["allowed"],
-		"allowedRunning":    daysRunning["allowed"],
-		"disallowedCycling": daysCycling["disallowed"],
-		"disallowedRunning": daysRunning["disallowed"],
+		"allowedCycling":    daysCycling.allowed,
+		"allowedRunning":    daysRunning.allowed,
+		"disallowedCycling": daysCycling.disallowed,
+		"disallowedRunning": daysRunning.disallowed,
 	}
 
 	str, err := p.templates.Execute("plan_combine", m)
@@ -192,17 +187,17 @@ func (p Planner) MultiStep() {
 	userPromptCycling, daysCycling := p.userPromptOfSport(profile.Cycling)
 	userPromptRunning, daysRunning := p.userPromptOfSport(profile.Running)
 
-	if len(daysCycling["allowed"]) == 0 && len(daysRunning["allowed"]) == 0 {
+	if len(daysCycling.allowed) == 0 && len(daysRunning.allowed) == 0 {
 		fmt.Println("[]")
 		return
 	}
 
-	if len(daysRunning["allowed"]) == 0 {
+	if len(daysRunning.allowed) == 0 {
 		p.singleSport(userPromptCycling, profile.Cycling)
 		return
 	}
 
-	if len(daysCycling["allowed"]) == 0 {
+	if len(daysCycling.allowed) == 0 {
 		p.singleSport(userPromptRunning, profile.Running)
 		return
 	}

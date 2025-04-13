@@ -37,3 +37,7 @@ func (p Parsed) Execute(templateName string, d any) (string, error) {
 
 	return prompt.String(), nil
 }
+
+func (p Parsed) Has(name string) bool {
+	return p.tmpl.Lookup(name) != nil
+}

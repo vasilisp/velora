@@ -1,12 +1,12 @@
-{{define "plan_running"}}Your task:
+{{define "plan_sport"}}Your task:
 
-## Plan Running Workouts
+## Plan {{.sport}} workouts
 
 Plan workouts only on: {{range $index, $day := .allowed }}{{- if $index }}, {{end}}{{$day}}{{- end}}.
 {{if gt (len .disallowed) 0 }}
 Do not plan any workouts on: {{range $index, $day := .disallowed }}{{- if $index }}, {{end}}{{$day}}{{- end}}.
 {{end}}
-Using the data provided and your expertise in running and fitness, recommend
+Using the data provided and your expertise in {{.sport}} and fitness, recommend
 workouts that support both my short-term and long-term goals.
 
 - Suggest at most one workout per day.
