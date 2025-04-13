@@ -168,7 +168,7 @@ func (p Planner) singleSport(userPrompt langchain.Message, sport profile.Sport) 
 		util.Fatalf("error getting %s sport plan: %v\n", sport.String(), err)
 	}
 
-	fmt.Fprintf(os.Stderr, "## %s Plan\n\n%s\n\n", sport.String(), response)
+	fmt.Fprintf(os.Stderr, "## %s Plan\n\n%s\n\n", sport.String(), util.SanitizeOutput(response, false))
 
 	responseJSON, err := p.client.AskGPT([]langchain.Message{
 		userPrompt,
@@ -182,7 +182,7 @@ func (p Planner) singleSport(userPrompt langchain.Message, sport profile.Sport) 
 		util.Fatalf("error getting JSON plan: %v\n", err)
 	}
 
-	fmt.Println(responseJSON)
+	fmt.Println(util.SanitizeOutput(responseJSON, false))
 }
 
 func (p Planner) MultiStep() {
@@ -231,8 +231,8 @@ func (p Planner) MultiStep() {
 	go askGPT("running", userPromptRunning, &responseRunning)
 	wg.Wait()
 
-	fmt.Fprintf(os.Stderr, "## Cycling Draft Plan\n\n%s\n\n", responseCycling)
-	fmt.Fprintf(os.Stderr, "## Running Draft Plan\n\n%s\n\n", responseRunning)
+	fmt.Fprintf(os.Stderr, "## Cycling Draft Plan\n\n%s\n\n", util.SanitizeOutput(responseCycling, false))
+	fmt.Fprintf(os.Stderr, "## Running Draft Plan\n\n%s\n\n", util.SanitizeOutput(responseRunning, false))
 
 	responseCombine, err := p.client.AskGPT([]langchain.Message{
 		systemPrompt,
@@ -253,7 +253,7 @@ func (p Planner) MultiStep() {
 		util.Fatalf("error getting combine plan: %v\n", err)
 	}
 
-	fmt.Fprintf(os.Stderr, "## Final Combined Plan\n\n%s\n\n", responseCombine)
+	fmt.Fprintf(os.Stderr, "## Final Combined Plan\n\n%s\n\n", util.SanitizeOutput(responseCombine, false))
 
 	responseJSON, err := p.client.AskGPT([]langchain.Message{
 		userPromptCombine,
@@ -267,7 +267,7 @@ func (p Planner) MultiStep() {
 		util.Fatalf("error getting JSON plan: %v\n", err)
 	}
 
-	fmt.Println(responseJSON)
+	fmt.Println(util.SanitizeOutput(responseJSON, false))
 }
 
 func (p Planner) SingleStep() {
@@ -300,5 +300,5 @@ func (p Planner) SingleStep() {
 		util.Fatalf("error getting JSON plan: %v\n", err)
 	}
 
-	fmt.Println(responseJSON)
+	fmt.Println(util.SanitizeOutput(responseJSON, false))
 }
