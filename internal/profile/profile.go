@@ -173,20 +173,3 @@ func (p Profile) AllowedDaysOfSport(sport Sport) AllowedDays {
 	}
 	panic("unreachable")
 }
-
-func (p Profile) AllowedDaysAny() AllowedDays {
-	cycling := p.CyclingConstraints.AllowedDays
-	running := p.RunningConstraints.AllowedDays
-
-	result := AllowedDays{}
-
-	for day := range cycling {
-		result[day] = struct{}{}
-	}
-
-	for day := range running {
-		result[day] = struct{}{}
-	}
-
-	return result
-}
