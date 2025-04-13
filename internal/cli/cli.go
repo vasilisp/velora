@@ -273,5 +273,7 @@ func Main() {
 		askAI(dbh, "ask", []string{strings.Join(os.Args[2:], " ")})
 	case "tune":
 		tuneAI()
+	default:
+		util.Fatalf("unknown command\n")
 	}
 }
