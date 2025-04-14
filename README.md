@@ -1,16 +1,104 @@
 # velora
 
-**velora** is a command-line workout database with built-in adaptive coaching powered by AI. It focuses on cycling and running.
+**velora** is an AI-powered command-line workout tracker and coach, specializing in cycling and running. It combines workout logging with intelligent training recommendations.
 
-## Goals
+## Quick Start
 
-- Create a simple, personal workout tracker. Existing tools like Strava and other training platforms are too complex for my needs.
-- Explore the use of LLMs and machine learning in training recommendations.
+Log a workout using natural language:
+```bash
+$ velora addai 'Went on a ride this morning, covered 30km with 300m of climbing in 1h30min. It was a hilly route.'
+read activity:
 
-## Roadmap
+{
+  "time": "2025-04-14T08:00:00+00:00",
+  "sport": "cycling",
+  "distance": 30000,
+  "vertical_gain": 300,
+  "duration": 5400,
+  "was_recommended": false,
+  "notes": "Hilly route"
+}
 
-**velora** generates short-term training plans based on a user’s workout history and goals. The plan is to experiment with different AI techniques to improve the quality and usefulness of these recommendations:
+does it look correct? (y/n) y
+```
 
-1. Start with prompt engineering to see how far it can go.
-2. When that reaches its limits, fine-tune an LLM for better performance.
-3. If LLMs fall short, explore traditional machine learning approaches.
+Review your recent activities:
+```bash
+$ velora recent
+Date: Apr 13, 20:15
+Sport: cycling
+Time: 1h33m
+Distance: 36.0km
+Vertical Gain: 171m
+Notes: Urban ride
+
+Date: Apr 11, 18:00
+Sport: running
+Time: 52m
+Distance: 8.8km
+Vertical Gain: 42m
+Notes: 
+
+...
+```
+
+Get personalized training recommendations:
+```bash
+$ velora plan
+[
+  {
+    "date": "2025-04-14",
+    "sport": "cycling",
+    "distance": 40000,
+    "intensity": "medium"
+  },
+  {
+    "date": "2025-04-15",
+    "sport": "running",
+    "distance": 8000,
+    "intensity": "easy"
+  },
+  {
+    "date": "2025-04-16",
+    "sport": "cycling",
+    "distance": 50000,
+    "intensity": "hard"
+  }
+]
+```
+
+Get detailed recommendations with multi-step analysis:
+```bash
+$ velora plan --multi-step
+```
+The multi-step mode:
+- Analyzes your recent workout history
+- Generates separate training plans for each sport (cycling and running)
+- Combines the recommendations into a cohesive training schedule
+- Provides detailed reasoning for each recommendation
+
+Get insights about your training:
+```bash
+$ velora ask 'Evaluate my recent workouts. Are there signs of a plateau? What should I focus on?'
+```
+
+## Setup
+
+`velora` uses OpenAI's API. Configure your API key:
+```bash
+export OPENAI_API_KEY="your-api-key-here"
+```
+You also need to copy the provided `prefs.json.sample` file to `~/.velora/prefs.json`, and then modify it to suit your preferences.
+
+## AI Capabilities
+
+### Current
+- Natural language workout logging
+- Single-prompt training plan generation
+- Multi-step analysis for comprehensive recommendations
+- Interactive Q&A about your training
+
+### Future
+1. Fine-tuned LLMs for sport-specific recommendations
+2. Integration of traditional machine learning approaches
+3. Advanced training analytics and visualization
