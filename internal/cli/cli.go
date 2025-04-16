@@ -9,26 +9,14 @@ import (
 	"strings"
 	"time"
 
+	"github.com/vasilisp/lingograph"
+	"github.com/vasilisp/lingograph/openai"
 	"github.com/vasilisp/velora/internal/db"
 	"github.com/vasilisp/velora/internal/fitness"
-	"github.com/vasilisp/velora/internal/langchain"
 	"github.com/vasilisp/velora/internal/plan"
 	"github.com/vasilisp/velora/internal/template"
 	"github.com/vasilisp/velora/internal/util"
 )
-
-func langChainClient() langchain.Client {
-	apiKey := os.Getenv("OPENAI_API_KEY")
-	if apiKey == "" {
-		util.Fatalf("OPENAI_API_KEY environment variable not set\n")
-	}
-
-	client, err := langchain.NewClient(apiKey)
-	if err != nil {
-		util.Fatalf("error creating OpenAI client: %v\n", err)
-	}
-	return client
-}
 
 func addActivity(dbh *sql.DB, args []string) {
 	if len(args) < 3 {
@@ -81,37 +69,8 @@ func addActivity(dbh *sql.DB, args []string) {
 	}
 }
 
-func addActivityAI(dbh *sql.DB, args []string) {
-	util.Assert(len(args) == 1, "Usage: velora addai <description>")
-
-	client := langChainClient()
-
-	templates := template.MakeParsed([]string{"header", "add"})
-
-	userPrompt := strings.Join(args, " ")
-
-	systemPrompt, err := templates.Execute("add", nil)
-	if err != nil {
-		util.Fatalf("error getting system prompt: %v\n", err)
-	}
-
-	response, err := client.AskGPT([]langchain.Message{
-		{
-			Role:    langchain.MessageTypeSystem,
-			Content: systemPrompt,
-		},
-		{
-			Role:    langchain.MessageTypeHuman,
-			Content: "Today is " + time.Now().Format("2006-01-02"),
-		},
-		{
-			Role:    langchain.MessageTypeHuman,
-			Content: userPrompt,
-		},
-	})
-	if err != nil {
-		util.Fatalf("error getting activity: %v\n", err)
-	}
+func readActivityAI(dbh *sql.DB, response string) {
+	util.Assert(dbh != nil, "readActivityAI nil dbh")
 
 	var activityUnsafe db.ActivityUnsafe
 	if err := (&activityUnsafe).UnmarshalJSON([]byte(response)); err != nil {
@@ -130,6 +89,7 @@ func addActivityAI(dbh *sql.DB, args []string) {
 	if err != nil {
 		util.Fatalf("error reading answer: %v\n", err)
 	}
+
 	switch strings.ToLower(answer) {
 	case "y", "yes":
 		break
@@ -139,6 +99,44 @@ func addActivityAI(dbh *sql.DB, args []string) {
 
 	if err := db.InsertActivity(dbh, activity); err != nil {
 		util.Fatalf("error inserting activity: %v\n", err)
+	}
+}
+
+func model() openai.Model {
+	return openai.NewModel(openai.GPT4o, openai.APIKeyFromEnv())
+}
+
+func addActivityAI(dbh *sql.DB, args []string) {
+	util.Assert(dbh != nil, "addActivityAI nil dbh")
+	util.Assert(len(args) == 1, "Usage: velora addai <description>")
+
+	model := model()
+
+	templates := template.MakeParsed([]string{"header", "add"})
+
+	userPrompt := strings.Join(args, " ")
+
+	systemPrompt, err := templates.Execute("add", nil)
+	if err != nil {
+		util.Fatalf("error getting system prompt: %v\n", err)
+	}
+
+	echo := func(message lingograph.Message) {
+		readActivityAI(dbh, message.Content)
+		os.Exit(0)
+	}
+
+	pipeline := lingograph.Chain(
+		lingograph.UserPrompt("Today is "+time.Now().Format("2006-01-02"), false),
+		lingograph.UserPrompt(userPrompt, false),
+		model.Actor(systemPrompt).Pipeline(echo, false, 3),
+	)
+
+	chat := lingograph.NewSliceChat()
+
+	err = pipeline.Execute(chat)
+	if err != nil {
+		util.Fatalf("error getting activity: %v\n", err)
 	}
 }
 
@@ -169,10 +167,10 @@ func fitnessData(dbh *sql.DB) (string, error) {
 	return string(fitnessBytes), nil
 }
 
-func askAI(dbh *sql.DB, mode string, userPromptExtra []string) {
+func askAI(dbh *sql.DB, mode string, userPrompt string) {
 	util.Assert(dbh != nil, "askAI nil dbh")
 
-	client := langChainClient()
+	model := model()
 
 	templates := template.MakeParsed([]string{"header", "ask", "spec_input"})
 
@@ -186,35 +184,28 @@ func askAI(dbh *sql.DB, mode string, userPromptExtra []string) {
 		util.Fatalf("error getting fitness data: %v\n", err)
 	}
 
-	messages := make([]langchain.Message, len(userPromptExtra)+2)
-
-	messages[0] = langchain.Message{
-		Role:    langchain.MessageTypeSystem,
-		Content: systemPrompt,
+	echo := func(message lingograph.Message) {
+		fmt.Println(util.SanitizeOutput(message.Content, false))
 	}
 
-	messages[1] = langchain.Message{
-		Role:    langchain.MessageTypeHuman,
-		Content: string(fitnessData),
-	}
+	actor := model.Actor(systemPrompt)
 
-	for i, prompt := range userPromptExtra {
-		messages[i+2] = langchain.Message{
-			Role:    langchain.MessageTypeHuman,
-			Content: prompt,
-		}
-	}
+	pipeline := lingograph.Chain(
+		lingograph.UserPrompt(fitnessData, false),
+		lingograph.UserPrompt(userPrompt, false),
+		actor.Pipeline(echo, false, 3),
+	)
 
-	response, err := client.AskGPT(messages)
+	chat := lingograph.NewSliceChat()
+
+	err = pipeline.Execute(chat)
 	if err != nil {
 		util.Fatalf("error getting response: %v\n", err)
 	}
-
-	fmt.Println(util.SanitizeOutput(response, false))
 }
 
 func tuneAI() {
-	client := langChainClient()
+	model := model()
 
 	templates := template.MakeParsed([]string{"header", "spec_input", "spec_output", "tune"})
 
@@ -223,23 +214,31 @@ func tuneAI() {
 		util.Fatalf("error getting user prompt: %v\n", err)
 	}
 
-	response, err := client.AskGPT([]langchain.Message{
-		{
-			Role:    langchain.MessageTypeHuman,
-			Content: userPrompt,
-		},
-	})
+	systemPrompt, err := templates.Execute("tune", nil)
+	if err != nil {
+		util.Fatalf("error getting system prompt: %v\n", err)
+	}
+
+	echo := func(message lingograph.Message) {
+		fmt.Println(util.SanitizeOutput(message.Content, false))
+	}
+
+	pipeline := lingograph.Chain(
+		lingograph.UserPrompt(userPrompt, false),
+		model.Actor(systemPrompt).Pipeline(echo, false, 3),
+	)
+
+	chat := lingograph.NewSliceChat()
+
+	err = pipeline.Execute(chat)
 	if err != nil {
 		util.Fatalf("error getting workout recommendation: %v\n", err)
 	}
-
-	fmt.Println(util.SanitizeOutput(response, false))
 }
 
 func planWorkouts(dbh *sql.DB, multiStep bool) {
-	client := langChainClient()
 	fitness := fitness.Read(dbh)
-	planner := plan.NewPlanner(client, fitness)
+	planner := plan.NewPlanner(openai.APIKeyFromEnv(), fitness)
 
 	if multiStep {
 		planner.MultiStep()
@@ -270,7 +269,7 @@ func Main() {
 	case "plan":
 		planWorkouts(dbh, len(os.Args) > 2 && os.Args[2] == "--multi-step")
 	case "ask":
-		askAI(dbh, "ask", []string{strings.Join(os.Args[2:], " ")})
+		askAI(dbh, "ask", strings.Join(os.Args[2:], " "))
 	case "tune":
 		tuneAI()
 	default:

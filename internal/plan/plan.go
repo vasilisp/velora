@@ -4,37 +4,36 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"sync"
 	"time"
 
+	"github.com/vasilisp/lingograph"
+	_ "github.com/vasilisp/lingograph"
+	"github.com/vasilisp/lingograph/openai"
 	"github.com/vasilisp/velora/internal/fitness"
-	"github.com/vasilisp/velora/internal/langchain"
 	"github.com/vasilisp/velora/internal/profile"
 	"github.com/vasilisp/velora/internal/template"
 	"github.com/vasilisp/velora/internal/util"
 )
 
 type Planner struct {
-	client    langchain.Client
+	model     openai.Model
 	fitness   *fitness.Fitness
 	templates template.Parsed
 }
 
-func NewPlanner(client langchain.Client, fitness *fitness.Fitness) Planner {
+func NewPlanner(apiKey string, fitness *fitness.Fitness) Planner {
 	templates := []string{"header", "plan_*", "sched_*", "spec_*"}
-	return Planner{client: client, fitness: fitness, templates: template.MakeParsed(templates)}
+	model := openai.NewModel(openai.GPT4o, openai.APIKeyFromEnv())
+	return Planner{model: model, fitness: fitness, templates: template.MakeParsed(templates)}
 }
 
-func (p Planner) systemPrompt() langchain.Message {
+func (p Planner) systemPrompt() string {
 	systemPromptStr, err := p.templates.Execute("plan_system", nil)
 	if err != nil {
 		util.Fatalf("error getting system prompt: %v\n", err)
 	}
 
-	return langchain.Message{
-		Role:    langchain.MessageTypeSystem,
-		Content: systemPromptStr,
-	}
+	return systemPromptStr
 }
 
 type allowedDisallowedDays struct {
@@ -85,7 +84,7 @@ func FormatDates(dates []time.Time) []string {
 	return formattedDates
 }
 
-func (p Planner) userPromptOfSport(sport profile.Sport) (langchain.Message, allowedDisallowedDays) {
+func (p Planner) userPromptOfSport(sport profile.Sport) (string, allowedDisallowedDays) {
 	days := nextThreeDays(p.fitness, p.fitness.Profile.AllowedDaysOfSport(sport))
 
 	m := map[string]any{
@@ -96,7 +95,7 @@ func (p Planner) userPromptOfSport(sport profile.Sport) (langchain.Message, allo
 
 	if len(days.Allowed) == 0 {
 		// no allowed days, no need to plan
-		return langchain.Message{}, days
+		return "", days
 	}
 
 	var str string
@@ -110,14 +109,11 @@ func (p Planner) userPromptOfSport(sport profile.Sport) (langchain.Message, allo
 		util.Fatalf("error executing %s template: %v\n", templateName, err)
 	}
 
-	return langchain.Message{
-		Role:    langchain.MessageTypeHuman,
-		Content: str,
-	}, days
+	return str, days
 }
 
 type sportData struct {
-	UserPrompt langchain.Message
+	UserPrompt string
 	Days       allowedDisallowedDays
 	Response   string
 }
@@ -149,67 +145,56 @@ func (p Planner) templateMultiSportArgs(filterUnavailable bool) map[string]any {
 	}
 }
 
-func (p Planner) userPromptCombine() langchain.Message {
+func (p Planner) userPromptCombine() string {
 	str, err := p.templates.Execute("plan_combine", p.templateMultiSportArgs(true))
 	if err != nil {
 		util.Fatalf("error getting combine user prompt: %v\n", err)
 	}
 
-	return langchain.Message{
-		Role:    langchain.MessageTypeHuman,
-		Content: str,
-	}
+	return str
 }
 
-func (p Planner) userPromptJSON() langchain.Message {
+func (p Planner) userPromptJSON() string {
 	str, err := p.templates.Execute("plan_json", nil)
 	if err != nil {
 		util.Fatalf("error getting JSON user prompt: %v\n", err)
 	}
 
-	return langchain.Message{
-		Role:    langchain.MessageTypeHuman,
-		Content: str,
-	}
+	return str
 }
 
-func userPromptFitness(fitness *fitness.Fitness) langchain.Message {
+func userPromptFitness(fitness *fitness.Fitness) string {
 	bytes, err := json.MarshalIndent(fitness, "", "  ")
 	if err != nil {
 		util.Fatalf("error marshalling fitness data: %v\n", err)
 	}
 
-	return langchain.Message{
-		Role:    langchain.MessageTypeHuman,
-		Content: string(bytes),
-	}
+	return string(bytes)
 }
 
-func (p Planner) singleSport(sport profile.Sport, userPrompt langchain.Message) {
-	response, err := p.client.AskGPT([]langchain.Message{
-		p.systemPrompt(),
-		userPromptFitness(p.fitness),
-		userPrompt,
-	})
+func (p Planner) singleSport(sport profile.Sport, userPrompt string) {
+	actor := p.model.Actor(p.systemPrompt())
+
+	echo := func(message lingograph.Message) {
+		fmt.Println(util.SanitizeOutput(message.Content, false))
+	}
+
+	actorJSON := p.model.Actor("")
+
+	pipeline := lingograph.Chain(
+		lingograph.UserPrompt(userPromptFitness(p.fitness), false),
+		lingograph.UserPrompt(userPrompt, false),
+		actor.Pipeline(echo, true, 3),
+		actorJSON.Pipeline(echo, false, 3),
+	)
+
+	chat := lingograph.NewSliceChat()
+
+	err := pipeline.Execute(chat)
+
 	if err != nil {
 		util.Fatalf("error getting %s sport plan: %v\n", sport.String(), err)
 	}
-
-	fmt.Fprintf(os.Stderr, "## %s Plan\n\n%s\n\n", util.Capitalize(sport.String()), util.SanitizeOutput(response, false))
-
-	responseJSON, err := p.client.AskGPT([]langchain.Message{
-		userPrompt,
-		{
-			Role:    langchain.MessageTypeAI,
-			Content: response,
-		},
-		p.userPromptJSON(),
-	})
-	if err != nil {
-		util.Fatalf("error getting JSON plan: %v\n", err)
-	}
-
-	fmt.Println(util.SanitizeOutput(responseJSON, false))
 }
 
 func (p Planner) MultiStep() {
@@ -241,87 +226,76 @@ func (p Planner) MultiStep() {
 	systemPrompt := p.systemPrompt()
 	userPromptFitness := userPromptFitness(p.fitness)
 
-	var wg sync.WaitGroup
-	wg.Add(len(sportMap))
-
-	askGPT := func(sport profile.Sport, sd *sportData) {
-		defer wg.Done()
-		var err error
-		sd.Response, err = p.client.AskGPT([]langchain.Message{
-			systemPrompt,
-			userPromptFitness,
-			sd.UserPrompt,
-		})
-		if err != nil {
-			util.Fatalf("error getting %s plan: %v\n", sport.String(), err)
+	echoStderr := func(header string) func(message lingograph.Message) {
+		return func(message lingograph.Message) {
+			if header != "" {
+				fmt.Fprintf(os.Stderr, "## %s\n\n", header)
+			}
+			fmt.Fprintf(os.Stderr, "%s\n", message.Content)
 		}
 	}
 
-	for sport := range sportMap {
-		go askGPT(sport, sportMap[sport])
+	echoStdout := func(message lingograph.Message) {
+		fmt.Println(util.SanitizeOutput(message.Content, false))
 	}
 
-	wg.Wait()
+	actor := p.model.Actor(systemPrompt)
 
+	fitnessPrompt := lingograph.UserPrompt(userPromptFitness, false)
+
+	parallelTasks := make([]lingograph.Pipeline, 0, len(sportMap))
 	for sport, data := range sportMap {
-		fmt.Fprintf(os.Stderr, "## %s Draft Plan\n\n%s\n\n", util.Capitalize(sport.String()), util.SanitizeOutput(data.Response, false))
+		parallelTasks = append(parallelTasks, lingograph.Chain(
+			fitnessPrompt,
+			lingograph.UserPrompt(data.UserPrompt, false),
+			actor.Pipeline(
+				echoStderr(fmt.Sprintf("%s Draft Plan", util.Capitalize(sport.String()))),
+				true,
+				3,
+			),
+		))
 	}
 
-	userPromptCombine := p.userPromptCombine()
+	pipeline := lingograph.Chain(
+		lingograph.Parallel(parallelTasks...),
+		fitnessPrompt,
+		lingograph.UserPrompt(p.userPromptCombine(), false),
+		actor.Pipeline(echoStderr("Final Plan"), true, 3),
+		lingograph.UserPrompt(p.userPromptJSON(), false),
+		actor.Pipeline(echoStdout, false, 3),
+	)
 
-	messages := make([]langchain.Message, 2*len(sportMap)+3)
-	messages[0] = systemPrompt
-	messages[1] = userPromptFitness
-	for i, data := range sportMap {
-		messages[2*i+2] = data.UserPrompt
-		messages[2*i+3] = langchain.Message{
-			Role:    langchain.MessageTypeAI,
-			Content: data.Response,
-		}
-	}
-	messages[len(messages)-1] = userPromptCombine
+	chat := lingograph.NewSliceChat()
 
-	responseCombine, err := p.client.AskGPT(messages)
+	err := pipeline.Execute(chat)
+
 	if err != nil {
-		util.Fatalf("error getting combine plan: %v\n", err)
+		util.Fatalf("error getting plan: %v\n", err)
 	}
-
-	fmt.Fprintf(os.Stderr, "## Final Combined Plan\n\n%s\n\n", util.SanitizeOutput(responseCombine, false))
-
-	responseJSON, err := p.client.AskGPT([]langchain.Message{
-		userPromptCombine,
-		{
-			Role:    langchain.MessageTypeAI,
-			Content: responseCombine,
-		},
-		p.userPromptJSON(),
-	})
-	if err != nil {
-		util.Fatalf("error getting JSON plan: %v\n", err)
-	}
-
-	fmt.Println(util.SanitizeOutput(responseJSON, false))
 }
 
 func (p Planner) SingleStep() {
-	systemPromptStr, err := p.templates.Execute("plan_single_step", p.templateMultiSportArgs(false))
+	systemPrompt, err := p.templates.Execute("plan_single_step", p.templateMultiSportArgs(false))
 	if err != nil {
 		util.Fatalf("error getting system prompt: %v\n", err)
 	}
 
-	systemPrompt := langchain.Message{
-		Role:    langchain.MessageTypeSystem,
-		Content: systemPromptStr,
+	actor := p.model.Actor(systemPrompt)
+
+	echo := func(message lingograph.Message) {
+		fmt.Println(util.SanitizeOutput(message.Content, false))
 	}
 
-	responseJSON, err := p.client.AskGPT([]langchain.Message{
-		systemPrompt,
-		userPromptFitness(p.fitness),
-		p.userPromptJSON(),
-	})
+	pipeline := lingograph.Chain(
+		lingograph.UserPrompt(systemPrompt, false),
+		lingograph.UserPrompt(userPromptFitness(p.fitness), false),
+		actor.Pipeline(echo, false, 3),
+	)
+
+	chat := lingograph.NewSliceChat()
+
+	err = pipeline.Execute(chat)
 	if err != nil {
-		util.Fatalf("error getting JSON plan: %v\n", err)
+		util.Fatalf("error getting plan: %v\n", err)
 	}
-
-	fmt.Println(util.SanitizeOutput(responseJSON, false))
 }
