@@ -185,31 +185,6 @@ func userPromptFitness(fitness *fitness.Fitness) string {
 	return string(bytes)
 }
 
-func (p Planner) singleSport(sport profile.Sport, userPrompt string) {
-	actor := openai.NewActor(p.model, p.systemPrompt())
-
-	echo := func(message lingograph.Message) {
-		fmt.Println(util.SanitizeOutput(message.Content, false))
-	}
-
-	actorJSON := openai.NewActor(p.model, "")
-
-	pipeline := lingograph.Chain(
-		lingograph.UserPrompt(userPromptFitness(p.fitness), false),
-		lingograph.UserPrompt(userPrompt, false),
-		actor.Pipeline(echo, true, 3),
-		actorJSON.Pipeline(echo, false, 3),
-	)
-
-	chat := lingograph.NewSliceChat()
-
-	err := pipeline.Execute(chat)
-
-	if err != nil {
-		util.Fatalf("error getting %s sport plan: %v\n", sport.String(), err)
-	}
-}
-
 func actorOutputPlan(model openai.Model, systemPrompt string) openai.Actor {
 	actor := openai.NewActor(model, systemPrompt)
 
@@ -227,6 +202,31 @@ Your task is to summarize the given workout plan and output it to the user.
 
 Only respond with a function call.
 `
+
+func (p Planner) singleSport(sport profile.Sport, userPrompt string) {
+	actor := openai.NewActor(p.model, p.systemPrompt())
+
+	echo := func(message lingograph.Message) {
+		fmt.Println(util.SanitizeOutput(message.Content, false))
+	}
+
+	actorOutputPlan := actorOutputPlan(p.model, systemPromptSummarize)
+
+	pipeline := lingograph.Chain(
+		lingograph.UserPrompt(userPromptFitness(p.fitness), false),
+		lingograph.UserPrompt(userPrompt, false),
+		actor.Pipeline(echo, true, 3),
+		actorOutputPlan.Pipeline(echo, false, 3),
+	)
+
+	chat := lingograph.NewSliceChat()
+
+	err := pipeline.Execute(chat)
+
+	if err != nil {
+		util.Fatalf("error getting %s sport plan: %v\n", sport.String(), err)
+	}
+}
 
 func (p Planner) MultiStep() {
 	sportMap := make(map[profile.Sport]*sportData)
