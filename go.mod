@@ -4,7 +4,7 @@ go 1.24.2
 
 require (
 	github.com/mattn/go-sqlite3 v1.14.28
-	github.com/vasilisp/lingograph v0.0.0-20250417230248-081d3dfeb95c
+	github.com/vasilisp/lingograph v0.0.0-20250418155705-b123cdec76c7
 	golang.org/x/text v0.24.0
 )
 
