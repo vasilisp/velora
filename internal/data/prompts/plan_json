@@ -1,3 +1,0 @@
-{{define "plan_json"}}Output the proposed plan as machine-readable JSON.
-
-{{ template "spec_output" . }}{{end}}

@@ -3,6 +3,7 @@ package plan
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"os"
 	"time"
 
@@ -19,6 +20,27 @@ type Planner struct {
 	model     openai.Model
 	fitness   *fitness.Fitness
 	templates template.Parsed
+}
+
+type PlanDay struct {
+	Date     string `json:"date" jsonschema:"description=The date of the planned workout in YYYY-MM-DD format"`
+	Sport    string `json:"sport" jsonschema:"description=The type of sport (running, cycling, swimming)"`
+	Distance int    `json:"distance" jsonschema:"description=The planned distance in meters"`
+	Notes    string `json:"notes" jsonschema:"description=Additional notes and instructions for the workout, in one line"`
+}
+
+type Plan struct {
+	Days        []PlanDay `json:"days"`
+	Explanation string    `json:"explanation" jsonschema:"description=A short explanation of the choices made, in one paragraph maximum"`
+}
+
+func (p Plan) Write(out io.Writer) {
+	fmt.Fprintf(out, "Plan:\n\n")
+	for _, day := range p.Days {
+		fmt.Fprintf(out, "  - Date: %s\n    Sport: %s\n    Distance: %d\n    Notes: %s\n",
+			day.Date, day.Sport, day.Distance, day.Notes)
+	}
+	fmt.Fprintf(out, "\nExplanation: %s\n", p.Explanation)
 }
 
 func NewPlanner(apiKey string, fitness *fitness.Fitness) Planner {
@@ -154,15 +176,6 @@ func (p Planner) userPromptCombine() string {
 	return str
 }
 
-func (p Planner) userPromptJSON() string {
-	str, err := p.templates.Execute("plan_json", nil)
-	if err != nil {
-		util.Fatalf("error getting JSON user prompt: %v\n", err)
-	}
-
-	return str
-}
-
 func userPromptFitness(fitness *fitness.Fitness) string {
 	bytes, err := json.MarshalIndent(fitness, "", "  ")
 	if err != nil {
@@ -196,6 +209,24 @@ func (p Planner) singleSport(sport profile.Sport, userPrompt string) {
 		util.Fatalf("error getting %s sport plan: %v\n", sport.String(), err)
 	}
 }
+
+func actorOutputPlan(model openai.Model, systemPrompt string) openai.Actor {
+	actor := openai.NewActor(model, systemPrompt)
+
+	openai.AddFunction(actor, "output_plan", "Output the plan to the user", func(plan Plan) (string, error) {
+		fmt.Println("")
+		plan.Write(os.Stdout)
+		return "plan received", nil
+	})
+
+	return actor
+}
+
+const systemPromptSummarize = `
+Your task is to summarize the given workout plan and output it to the user.
+
+Only respond with a function call.
+`
 
 func (p Planner) MultiStep() {
 	sportMap := make(map[profile.Sport]*sportData)
@@ -235,10 +266,6 @@ func (p Planner) MultiStep() {
 		}
 	}
 
-	echoStdout := func(message lingograph.Message) {
-		fmt.Println(util.SanitizeOutput(message.Content, false))
-	}
-
 	actor := openai.NewActor(p.model, systemPrompt)
 
 	fitnessPrompt := lingograph.UserPrompt(userPromptFitness, false)
@@ -256,13 +283,14 @@ func (p Planner) MultiStep() {
 		))
 	}
 
+	actorOutputPlan := actorOutputPlan(p.model, systemPromptSummarize)
+
 	pipeline := lingograph.Chain(
 		lingograph.Parallel(parallelTasks...),
 		fitnessPrompt,
 		lingograph.UserPrompt(p.userPromptCombine(), false),
 		actor.Pipeline(echoStderr("Final Plan"), true, 3),
-		lingograph.UserPrompt(p.userPromptJSON(), false),
-		actor.Pipeline(echoStdout, false, 3),
+		actorOutputPlan.Pipeline(nil, false, 3),
 	)
 
 	chat := lingograph.NewSliceChat()
@@ -280,16 +308,11 @@ func (p Planner) SingleStep() {
 		util.Fatalf("error getting system prompt: %v\n", err)
 	}
 
-	actor := openai.NewActor(p.model, systemPrompt)
-
-	echo := func(message lingograph.Message) {
-		fmt.Println(util.SanitizeOutput(message.Content, false))
-	}
+	actor := actorOutputPlan(p.model, systemPrompt)
 
 	pipeline := lingograph.Chain(
-		lingograph.UserPrompt(systemPrompt, false),
 		lingograph.UserPrompt(userPromptFitness(p.fitness), false),
-		actor.Pipeline(echo, false, 3),
+		actor.Pipeline(nil, false, 3),
 	)
 
 	chat := lingograph.NewSliceChat()

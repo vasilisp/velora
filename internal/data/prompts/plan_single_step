@@ -15,4 +15,4 @@ Your current task is as follows:
 
 {{ template "spec_input" true }}
 
-{{ template "spec_output" . }}{{end}}
+Only respond with a function call.{{end}}
