@@ -173,13 +173,13 @@ func userPromptFitness(fitness *fitness.Fitness) string {
 }
 
 func (p Planner) singleSport(sport profile.Sport, userPrompt string) {
-	actor := p.model.Actor(p.systemPrompt())
+	actor := openai.NewActor(p.model, p.systemPrompt())
 
 	echo := func(message lingograph.Message) {
 		fmt.Println(util.SanitizeOutput(message.Content, false))
 	}
 
-	actorJSON := p.model.Actor("")
+	actorJSON := openai.NewActor(p.model, "")
 
 	pipeline := lingograph.Chain(
 		lingograph.UserPrompt(userPromptFitness(p.fitness), false),
@@ -239,7 +239,7 @@ func (p Planner) MultiStep() {
 		fmt.Println(util.SanitizeOutput(message.Content, false))
 	}
 
-	actor := p.model.Actor(systemPrompt)
+	actor := openai.NewActor(p.model, systemPrompt)
 
 	fitnessPrompt := lingograph.UserPrompt(userPromptFitness, false)
 
@@ -280,7 +280,7 @@ func (p Planner) SingleStep() {
 		util.Fatalf("error getting system prompt: %v\n", err)
 	}
 
-	actor := p.model.Actor(systemPrompt)
+	actor := openai.NewActor(p.model, systemPrompt)
 
 	echo := func(message lingograph.Message) {
 		fmt.Println(util.SanitizeOutput(message.Content, false))

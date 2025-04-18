@@ -126,10 +126,12 @@ func addActivityAI(dbh *sql.DB, args []string) {
 		os.Exit(0)
 	}
 
+	actor := openai.NewActor(model, systemPrompt)
+
 	pipeline := lingograph.Chain(
 		lingograph.UserPrompt("Today is "+time.Now().Format("2006-01-02"), false),
 		lingograph.UserPrompt(userPrompt, false),
-		model.Actor(systemPrompt).Pipeline(echo, false, 3),
+		actor.Pipeline(echo, false, 3),
 	)
 
 	chat := lingograph.NewSliceChat()
@@ -188,7 +190,7 @@ func askAI(dbh *sql.DB, mode string, userPrompt string) {
 		fmt.Println(util.SanitizeOutput(message.Content, false))
 	}
 
-	actor := model.Actor(systemPrompt)
+	actor := openai.NewActor(model, systemPrompt)
 
 	pipeline := lingograph.Chain(
 		lingograph.UserPrompt(fitnessData, false),
@@ -223,9 +225,11 @@ func tuneAI() {
 		fmt.Println(util.SanitizeOutput(message.Content, false))
 	}
 
+	actor := openai.NewActor(model, systemPrompt)
+
 	pipeline := lingograph.Chain(
 		lingograph.UserPrompt(userPrompt, false),
-		model.Actor(systemPrompt).Pipeline(echo, false, 3),
+		actor.Pipeline(echo, false, 3),
 	)
 
 	chat := lingograph.NewSliceChat()
