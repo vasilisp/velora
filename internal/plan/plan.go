@@ -10,6 +10,7 @@ import (
 	"github.com/vasilisp/lingograph"
 	_ "github.com/vasilisp/lingograph"
 	"github.com/vasilisp/lingograph/openai"
+	"github.com/vasilisp/lingograph/store"
 	"github.com/vasilisp/velora/internal/fitness"
 	"github.com/vasilisp/velora/internal/profile"
 	"github.com/vasilisp/velora/internal/template"
@@ -45,7 +46,8 @@ func (p Plan) Write(out io.Writer) {
 
 func NewPlanner(apiKey string, fitness *fitness.Fitness) Planner {
 	templates := []string{"header", "plan_*", "sched_*", "spec_*"}
-	model := openai.NewModel(openai.GPT4o, openai.APIKeyFromEnv())
+	// even mini should be good for multi-step planning
+	model := openai.NewModel(openai.GPT41, openai.APIKeyFromEnv())
 	return Planner{model: model, fitness: fitness, templates: template.MakeParsed(templates)}
 }
 
@@ -188,7 +190,7 @@ func userPromptFitness(fitness *fitness.Fitness) string {
 func actorOutputPlan(model openai.Model, systemPrompt string) openai.Actor {
 	actor := openai.NewActor(model, systemPrompt)
 
-	openai.AddFunction(actor, "output_plan", "Output the plan to the user", func(plan Plan) (string, error) {
+	openai.AddFunction(actor, "output_plan", "Output the plan to the user", func(plan Plan, store store.Store) (string, error) {
 		fmt.Println("")
 		plan.Write(os.Stdout)
 		return "plan received", nil
