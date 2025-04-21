@@ -18,7 +18,7 @@ import (
 )
 
 type Planner struct {
-	model     openai.Model
+	client    openai.Client
 	fitness   *fitness.Fitness
 	templates template.Parsed
 }
@@ -46,9 +46,8 @@ func (p Plan) Write(out io.Writer) {
 
 func NewPlanner(apiKey string, fitness *fitness.Fitness) Planner {
 	templates := []string{"header", "plan_*", "sched_*", "spec_*"}
-	// even mini should be good for multi-step planning
-	model := openai.NewModel(openai.GPT41, openai.APIKeyFromEnv())
-	return Planner{model: model, fitness: fitness, templates: template.MakeParsed(templates)}
+	client := openai.NewClient(apiKey)
+	return Planner{client: client, fitness: fitness, templates: template.MakeParsed(templates)}
 }
 
 func (p Planner) systemPrompt() string {
@@ -187,8 +186,8 @@ func userPromptFitness(fitness *fitness.Fitness) string {
 	return string(bytes)
 }
 
-func actorOutputPlan(model openai.Model, systemPrompt string) openai.Actor {
-	actor := openai.NewActor(model, systemPrompt)
+func actorOutputPlan(client openai.Client, systemPrompt string) openai.Actor {
+	actor := openai.NewActor(client, openai.GPT41Nano, systemPrompt)
 
 	openai.AddFunction(actor, "output_plan", "Output the plan to the user", func(plan Plan, store store.Store) (string, error) {
 		fmt.Println("")
@@ -206,13 +205,12 @@ Only respond with a function call.
 `
 
 func (p Planner) singleSport(sport profile.Sport, userPrompt string) {
-	actor := openai.NewActor(p.model, p.systemPrompt())
-
 	echo := func(message lingograph.Message) {
 		fmt.Println(util.SanitizeOutput(message.Content, false))
 	}
 
-	actorOutputPlan := actorOutputPlan(p.model, systemPromptSummarize)
+	actor := openai.NewActor(p.client, openai.GPT41, p.systemPrompt())
+	actorOutputPlan := actorOutputPlan(p.client, systemPromptSummarize)
 
 	pipeline := lingograph.Chain(
 		lingograph.UserPrompt(userPromptFitness(p.fitness), false),
@@ -268,7 +266,7 @@ func (p Planner) MultiStep() {
 		}
 	}
 
-	actor := openai.NewActor(p.model, systemPrompt)
+	actorSingleSport := openai.NewActor(p.client, openai.GPT41Mini, systemPrompt)
 
 	fitnessPrompt := lingograph.UserPrompt(userPromptFitness, false)
 
@@ -277,7 +275,7 @@ func (p Planner) MultiStep() {
 		parallelTasks = append(parallelTasks, lingograph.Chain(
 			fitnessPrompt,
 			lingograph.UserPrompt(data.UserPrompt, false),
-			actor.Pipeline(
+			actorSingleSport.Pipeline(
 				echoStderr(fmt.Sprintf("%s Draft Plan", util.Capitalize(sport.String()))),
 				true,
 				3,
@@ -285,13 +283,14 @@ func (p Planner) MultiStep() {
 		))
 	}
 
-	actorOutputPlan := actorOutputPlan(p.model, systemPromptSummarize)
+	actorCombine := openai.NewActor(p.client, openai.GPT41, systemPrompt)
+	actorOutputPlan := actorOutputPlan(p.client, systemPromptSummarize)
 
 	pipeline := lingograph.Chain(
 		lingograph.Parallel(parallelTasks...),
 		fitnessPrompt,
 		lingograph.UserPrompt(p.userPromptCombine(), false),
-		actor.Pipeline(echoStderr("Final Plan"), true, 3),
+		actorCombine.Pipeline(echoStderr("Final Plan"), true, 3),
 		actorOutputPlan.Pipeline(nil, false, 3),
 	)
 
@@ -310,7 +309,7 @@ func (p Planner) SingleStep() {
 		util.Fatalf("error getting system prompt: %v\n", err)
 	}
 
-	actor := actorOutputPlan(p.model, systemPrompt)
+	actor := actorOutputPlan(p.client, systemPrompt)
 
 	pipeline := lingograph.Chain(
 		lingograph.UserPrompt(userPromptFitness(p.fitness), false),

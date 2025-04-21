@@ -102,15 +102,9 @@ func readActivityAI(dbh *sql.DB, response string) {
 	}
 }
 
-func model() openai.Model {
-	return openai.NewModel(openai.GPT4o, openai.APIKeyFromEnv())
-}
-
 func addActivityAI(dbh *sql.DB, args []string) {
 	util.Assert(dbh != nil, "addActivityAI nil dbh")
 	util.Assert(len(args) == 1, "Usage: velora addai <description>")
-
-	model := model()
 
 	templates := template.MakeParsed([]string{"header", "add"})
 
@@ -126,7 +120,8 @@ func addActivityAI(dbh *sql.DB, args []string) {
 		os.Exit(0)
 	}
 
-	actor := openai.NewActor(model, systemPrompt)
+	client := openai.NewClient(openai.APIKeyFromEnv())
+	actor := openai.NewActor(client, openai.GPT41Mini, systemPrompt)
 
 	pipeline := lingograph.Chain(
 		lingograph.UserPrompt("Today is "+time.Now().Format("2006-01-02"), false),
@@ -172,8 +167,6 @@ func fitnessData(dbh *sql.DB) (string, error) {
 func askAI(dbh *sql.DB, mode string, userPrompt string) {
 	util.Assert(dbh != nil, "askAI nil dbh")
 
-	model := model()
-
 	templates := template.MakeParsed([]string{"header", "ask", "spec_input"})
 
 	systemPrompt, err := templates.Execute(mode, nil)
@@ -190,7 +183,8 @@ func askAI(dbh *sql.DB, mode string, userPrompt string) {
 		fmt.Println(util.SanitizeOutput(message.Content, false))
 	}
 
-	actor := openai.NewActor(model, systemPrompt)
+	client := openai.NewClient(openai.APIKeyFromEnv())
+	actor := openai.NewActor(client, openai.GPT41, systemPrompt)
 
 	pipeline := lingograph.Chain(
 		lingograph.UserPrompt(fitnessData, false),
@@ -207,8 +201,6 @@ func askAI(dbh *sql.DB, mode string, userPrompt string) {
 }
 
 func tuneAI() {
-	model := model()
-
 	templates := template.MakeParsed([]string{"header", "spec_input", "spec_output", "tune"})
 
 	userPrompt, err := templates.Execute("tune", nil)
@@ -225,7 +217,8 @@ func tuneAI() {
 		fmt.Println(util.SanitizeOutput(message.Content, false))
 	}
 
-	actor := openai.NewActor(model, systemPrompt)
+	client := openai.NewClient(openai.APIKeyFromEnv())
+	actor := openai.NewActor(client, openai.GPT41, systemPrompt)
 
 	pipeline := lingograph.Chain(
 		lingograph.UserPrompt(userPrompt, false),
