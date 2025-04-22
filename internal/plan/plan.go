@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/vasilisp/lingograph"
-	_ "github.com/vasilisp/lingograph"
+	"github.com/vasilisp/lingograph/extra"
 	"github.com/vasilisp/lingograph/openai"
 	"github.com/vasilisp/lingograph/store"
 	"github.com/vasilisp/velora/internal/fitness"
@@ -205,12 +205,10 @@ Only respond with a function call.
 `
 
 func (p Planner) singleSport(sport profile.Sport, userPrompt string) {
-	echo := func(message lingograph.Message) {
-		fmt.Println(util.SanitizeOutput(message.Content, false))
-	}
-
 	actor := openai.NewActor(p.client, openai.GPT41, p.systemPrompt())
 	actorOutputPlan := actorOutputPlan(p.client, systemPromptSummarize)
+
+	echo := extra.Echoln(os.Stdout, "")
 
 	pipeline := lingograph.Chain(
 		lingograph.UserPrompt(userPromptFitness(p.fitness), false),
@@ -257,15 +255,6 @@ func (p Planner) MultiStep() {
 	systemPrompt := p.systemPrompt()
 	userPromptFitness := userPromptFitness(p.fitness)
 
-	echoStderr := func(header string) func(message lingograph.Message) {
-		return func(message lingograph.Message) {
-			if header != "" {
-				fmt.Fprintf(os.Stderr, "## %s\n\n", header)
-			}
-			fmt.Fprintf(os.Stderr, "%s\n", message.Content)
-		}
-	}
-
 	actorSingleSport := openai.NewActor(p.client, openai.GPT41Mini, systemPrompt)
 
 	fitnessPrompt := lingograph.UserPrompt(userPromptFitness, false)
@@ -276,7 +265,7 @@ func (p Planner) MultiStep() {
 			fitnessPrompt,
 			lingograph.UserPrompt(data.UserPrompt, false),
 			actorSingleSport.Pipeline(
-				echoStderr(fmt.Sprintf("%s Draft Plan", util.Capitalize(sport.String()))),
+				extra.Echoln(os.Stderr, fmt.Sprintf("%s Draft Plan\n\n", util.Capitalize(sport.String()))),
 				true,
 				3,
 			),
@@ -290,7 +279,7 @@ func (p Planner) MultiStep() {
 		lingograph.Parallel(parallelTasks...),
 		fitnessPrompt,
 		lingograph.UserPrompt(p.userPromptCombine(), false),
-		actorCombine.Pipeline(echoStderr("Final Plan"), true, 3),
+		actorCombine.Pipeline(extra.Echoln(os.Stderr, "Final Plan\n\n"), true, 3),
 		actorOutputPlan.Pipeline(nil, false, 3),
 	)
 

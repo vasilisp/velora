@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/vasilisp/lingograph"
+	"github.com/vasilisp/lingograph/extra"
 	"github.com/vasilisp/lingograph/openai"
 	"github.com/vasilisp/velora/internal/db"
 	"github.com/vasilisp/velora/internal/fitness"
@@ -82,7 +83,9 @@ func readActivityAI(dbh *sql.DB, response string) {
 		util.Fatalf("error converting activity: %v\n", err)
 	}
 
-	fmt.Printf("read activity:\n\n%s\n\ndoes it look correct? (y/n) ", util.SanitizeOutput(response, false))
+	fmt.Printf("read activity:\n\n")
+	extra.SanitizeOutput(response, false, os.Stdout)
+	fmt.Printf("\n\ndoes it look correct? (y/n) ")
 
 	var answer string
 	_, err = fmt.Scanln(&answer)
@@ -179,17 +182,13 @@ func askAI(dbh *sql.DB, mode string, userPrompt string) {
 		util.Fatalf("error getting fitness data: %v\n", err)
 	}
 
-	echo := func(message lingograph.Message) {
-		fmt.Println(util.SanitizeOutput(message.Content, false))
-	}
-
 	client := openai.NewClient(openai.APIKeyFromEnv())
 	actor := openai.NewActor(client, openai.GPT41, systemPrompt)
 
 	pipeline := lingograph.Chain(
 		lingograph.UserPrompt(fitnessData, false),
 		lingograph.UserPrompt(userPrompt, false),
-		actor.Pipeline(echo, false, 3),
+		actor.Pipeline(extra.Echoln(os.Stdout, ""), false, 3),
 	)
 
 	chat := lingograph.NewSliceChat()
@@ -213,16 +212,12 @@ func tuneAI() {
 		util.Fatalf("error getting system prompt: %v\n", err)
 	}
 
-	echo := func(message lingograph.Message) {
-		fmt.Println(util.SanitizeOutput(message.Content, false))
-	}
-
 	client := openai.NewClient(openai.APIKeyFromEnv())
 	actor := openai.NewActor(client, openai.GPT41, systemPrompt)
 
 	pipeline := lingograph.Chain(
 		lingograph.UserPrompt(userPrompt, false),
-		actor.Pipeline(echo, false, 3),
+		actor.Pipeline(extra.Echoln(os.Stdout, ""), false, 3),
 	)
 
 	chat := lingograph.NewSliceChat()

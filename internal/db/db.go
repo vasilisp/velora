@@ -10,6 +10,7 @@ import (
 	"time"
 
 	_ "github.com/mattn/go-sqlite3"
+	"github.com/vasilisp/lingograph/extra"
 	"github.com/vasilisp/velora/internal/util"
 )
 
@@ -89,7 +90,7 @@ func (a *ActivityUnsafe) Show() string {
 		util.FormatDuration(a.Duration),
 		util.FormatDistance(a.Distance),
 		a.VerticalGain,
-		util.SanitizeOutput(a.Notes, true))
+		extra.SanitizeOutputString(a.Notes, true))
 }
 
 type activity struct {
