@@ -186,8 +186,8 @@ func userPromptFitness(fitness *fitness.Fitness) string {
 	return string(bytes)
 }
 
-func actorOutputPlan(client openai.Client, systemPrompt string) openai.Actor {
-	actor := openai.NewActor(client, openai.GPT41Nano, systemPrompt)
+func actorOutputPlan(client openai.Client, model openai.ChatModel, systemPrompt string) openai.Actor {
+	actor := openai.NewActor(client, model, systemPrompt)
 
 	openai.AddFunction(actor, "output_plan", "Output the plan to the user", func(plan Plan, store store.Store) (string, error) {
 		fmt.Println("")
@@ -206,7 +206,7 @@ Only respond with a function call.
 
 func (p Planner) singleSport(sport profile.Sport, userPrompt string) {
 	actor := openai.NewActor(p.client, openai.GPT41, p.systemPrompt())
-	actorOutputPlan := actorOutputPlan(p.client, systemPromptSummarize)
+	actorOutputPlan := actorOutputPlan(p.client, openai.GPT41Nano, systemPromptSummarize)
 
 	echo := extra.Echoln(os.Stdout, "")
 
@@ -273,7 +273,7 @@ func (p Planner) MultiStep() {
 	}
 
 	actorCombine := openai.NewActor(p.client, openai.GPT41, systemPrompt)
-	actorOutputPlan := actorOutputPlan(p.client, systemPromptSummarize)
+	actorOutputPlan := actorOutputPlan(p.client, openai.GPT41Nano, systemPromptSummarize)
 
 	pipeline := lingograph.Chain(
 		lingograph.Parallel(parallelTasks...),
@@ -298,7 +298,7 @@ func (p Planner) SingleStep() {
 		util.Fatalf("error getting system prompt: %v\n", err)
 	}
 
-	actor := actorOutputPlan(p.client, systemPrompt)
+	actor := actorOutputPlan(p.client, openai.GPT41, systemPrompt)
 
 	pipeline := lingograph.Chain(
 		lingograph.UserPrompt(userPromptFitness(p.fitness), false),
