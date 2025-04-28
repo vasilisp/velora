@@ -45,26 +45,20 @@ Notes:
 Get personalized training recommendations:
 ```bash
 $ velora plan
-[
-  {
-    "date": "2025-04-14",
-    "sport": "cycling",
-    "distance": 40000,
-    "intensity": "medium"
-  },
-  {
-    "date": "2025-04-15",
-    "sport": "running",
-    "distance": 8000,
-    "intensity": "easy"
-  },
-  {
-    "date": "2025-04-16",
-    "sport": "cycling",
-    "distance": 50000,
-    "intensity": "hard"
-  }
-]
+Plan:
+
+  - Date: 2025-04-14
+    Sport: running
+    Distance: 6000
+    Notes: ...
+  - Date: 2025-04-15
+    Sport: cycling
+    Distance: 50000
+    Notes: ...
+  - Date: 2025-04-16
+    Sport: running
+    Distance: 8000
+    Notes: ...
 ```
 
 Get detailed recommendations with multi-step analysis:
@@ -99,6 +93,6 @@ You also need to copy the provided `prefs.json.sample` file to `~/.velora/prefs.
 - Interactive Q&A about your training
 
 ### Future
-1. Fine-tuned LLMs for sport-specific recommendations
+1. ~~Fine-tuned LLMs for sport-specific recommendations~~ (now handled via OpenAI function calls for structured output; reasoning gains little from fine-tuning)
 2. Integration of traditional machine learning approaches
 3. Advanced training analytics and visualization
