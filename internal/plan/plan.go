@@ -17,6 +17,8 @@ import (
 	"github.com/vasilisp/velora/internal/util"
 )
 
+const moreDeterministic = 0.2
+
 type Planner struct {
 	client    openai.Client
 	fitness   *fitness.Fitness
@@ -187,7 +189,8 @@ func userPromptFitness(fitness *fitness.Fitness) string {
 }
 
 func actorOutputPlan(client openai.Client, model openai.ChatModel, systemPrompt string) openai.Actor {
-	actor := openai.NewActor(client, model, systemPrompt)
+	temperature := moreDeterministic
+	actor := openai.NewActor(client, model, systemPrompt, &temperature)
 
 	openai.AddFunction(actor, "output_plan", "Output the plan to the user", func(plan Plan, store store.Store) (string, error) {
 		fmt.Println("")
@@ -205,7 +208,8 @@ Only respond with a function call.
 `
 
 func (p Planner) singleSport(sport profile.Sport, userPrompt string) {
-	actor := openai.NewActor(p.client, openai.GPT41, p.systemPrompt())
+	temperature := moreDeterministic
+	actor := openai.NewActor(p.client, openai.GPT41, p.systemPrompt(), &temperature)
 	actorOutputPlan := actorOutputPlan(p.client, openai.GPT41Nano, systemPromptSummarize)
 
 	echo := extra.Echoln(os.Stdout, "")
@@ -217,7 +221,7 @@ func (p Planner) singleSport(sport profile.Sport, userPrompt string) {
 		actorOutputPlan.Pipeline(echo, false, 3),
 	)
 
-	chat := lingograph.NewSliceChat()
+	chat := lingograph.NewChat()
 
 	err := pipeline.Execute(chat)
 
@@ -255,7 +259,9 @@ func (p Planner) MultiStep() {
 	systemPrompt := p.systemPrompt()
 	userPromptFitness := userPromptFitness(p.fitness)
 
-	actorSingleSport := openai.NewActor(p.client, openai.GPT41Mini, systemPrompt)
+	temperature := moreDeterministic
+
+	actorSingleSport := openai.NewActor(p.client, openai.GPT41Mini, systemPrompt, &temperature)
 
 	fitnessPrompt := lingograph.UserPrompt(userPromptFitness, false)
 
@@ -272,7 +278,7 @@ func (p Planner) MultiStep() {
 		))
 	}
 
-	actorCombine := openai.NewActor(p.client, openai.GPT41, systemPrompt)
+	actorCombine := openai.NewActor(p.client, openai.GPT41, systemPrompt, &temperature)
 	actorOutputPlan := actorOutputPlan(p.client, openai.GPT41Nano, systemPromptSummarize)
 
 	pipeline := lingograph.Chain(
@@ -283,7 +289,7 @@ func (p Planner) MultiStep() {
 		actorOutputPlan.Pipeline(nil, false, 3),
 	)
 
-	chat := lingograph.NewSliceChat()
+	chat := lingograph.NewChat()
 
 	err := pipeline.Execute(chat)
 
@@ -305,7 +311,7 @@ func (p Planner) SingleStep() {
 		actor.Pipeline(nil, false, 3),
 	)
 
-	chat := lingograph.NewSliceChat()
+	chat := lingograph.NewChat()
 
 	err = pipeline.Execute(chat)
 	if err != nil {

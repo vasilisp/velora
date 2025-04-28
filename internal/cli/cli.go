@@ -124,7 +124,7 @@ func addActivityAI(dbh *sql.DB, args []string) {
 	}
 
 	client := openai.NewClient(openai.APIKeyFromEnv())
-	actor := openai.NewActor(client, openai.GPT41Mini, systemPrompt)
+	actor := openai.NewActor(client, openai.GPT41Mini, systemPrompt, nil)
 
 	pipeline := lingograph.Chain(
 		lingograph.UserPrompt("Today is "+time.Now().Format("2006-01-02"), false),
@@ -132,7 +132,7 @@ func addActivityAI(dbh *sql.DB, args []string) {
 		actor.Pipeline(echo, false, 3),
 	)
 
-	chat := lingograph.NewSliceChat()
+	chat := lingograph.NewChat()
 
 	err = pipeline.Execute(chat)
 	if err != nil {
@@ -183,7 +183,7 @@ func askAI(dbh *sql.DB, mode string, userPrompt string) {
 	}
 
 	client := openai.NewClient(openai.APIKeyFromEnv())
-	actor := openai.NewActor(client, openai.GPT41, systemPrompt)
+	actor := openai.NewActor(client, openai.GPT41, systemPrompt, nil)
 
 	pipeline := lingograph.Chain(
 		lingograph.UserPrompt(fitnessData, false),
@@ -191,7 +191,7 @@ func askAI(dbh *sql.DB, mode string, userPrompt string) {
 		actor.Pipeline(extra.Echoln(os.Stdout, ""), false, 3),
 	)
 
-	chat := lingograph.NewSliceChat()
+	chat := lingograph.NewChat()
 
 	err = pipeline.Execute(chat)
 	if err != nil {
@@ -213,14 +213,14 @@ func tuneAI() {
 	}
 
 	client := openai.NewClient(openai.APIKeyFromEnv())
-	actor := openai.NewActor(client, openai.GPT41, systemPrompt)
+	actor := openai.NewActor(client, openai.GPT41, systemPrompt, nil)
 
 	pipeline := lingograph.Chain(
 		lingograph.UserPrompt(userPrompt, false),
 		actor.Pipeline(extra.Echoln(os.Stdout, ""), false, 3),
 	)
 
-	chat := lingograph.NewSliceChat()
+	chat := lingograph.NewChat()
 
 	err = pipeline.Execute(chat)
 	if err != nil {
