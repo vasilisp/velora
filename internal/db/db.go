@@ -40,6 +40,12 @@ func SportFromString(s string) (Sport, error) {
 	}
 }
 
+type Segment struct {
+	Repeat   int `json:"repeat" jsonschema:"description=The number of times to repeat the segment. Can be 1."`
+	Distance int `json:"distance" jsonschema:"description=The planned distance in meters"`
+	Zone     int `json:"zone" jsonschema:"description=The planned zone (1-5)"`
+}
+
 type ActivityUnsafe struct {
 	Time           time.Time `json:"time"`
 	Duration       int       `json:"duration"`
@@ -49,6 +55,7 @@ type ActivityUnsafe struct {
 	VerticalGain   int       `json:"vertical_gain"`
 	Notes          string    `json:"notes"`
 	WasRecommended bool      `json:"was_recommended"`
+	Segments       []Segment `json:"segments"`
 }
 
 func (a ActivityUnsafe) MarshalJSON() ([]byte, error) {
@@ -81,16 +88,25 @@ func (a *ActivityUnsafe) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+func formatSegments(segments []Segment) string {
+	formatted := ""
+	for _, segment := range segments {
+		formatted += fmt.Sprintf("  - Repeat: %d, Distance: %d, Zone: %d\n", segment.Repeat, segment.Distance, segment.Zone)
+	}
+	return formatted
+}
+
 func (a *ActivityUnsafe) Show() string {
 	util.Assert(a != nil, "Show nil activity")
 
-	return fmt.Sprintf("Date: %s\nSport: %s\nTime: %s\nDistance: %s\nVertical Gain: %dm\nNotes: %s",
+	return fmt.Sprintf("Date: %s\nSport: %s\nTime: %s\nDistance: %s\nVertical Gain: %dm\nNotes: %s\nSegments: %v",
 		a.Time.Format("Jan 2, 15:04"),
 		a.Sport,
 		util.FormatDuration(a.Duration),
 		util.FormatDistance(a.Distance),
 		a.VerticalGain,
-		extra.SanitizeOutputString(a.Notes, true))
+		extra.SanitizeOutputString(a.Notes, true),
+		formatSegments(a.Segments))
 }
 
 type activity struct {
@@ -129,7 +145,7 @@ func LastActivities(db *sql.DB, limit int) ([]ActivityUnsafe, error) {
 	util.Assert(db != nil, "LastActivities nil db")
 
 	rows, err := db.Query(`
-		SELECT timestamp, duration, duration_total, sport, distance, vertical_gain, notes, was_recommended
+		SELECT timestamp, duration, duration_total, sport, distance, vertical_gain, notes, was_recommended, segments
 		FROM activities
 		ORDER BY timestamp DESC
 		LIMIT ?`, limit)
@@ -143,18 +159,32 @@ func LastActivities(db *sql.DB, limit int) ([]ActivityUnsafe, error) {
 		var sportStr string
 		var activity ActivityUnsafe
 		var verticalGain sql.NullInt64
-		err := rows.Scan(&activity.Time, &activity.Duration, &activity.DurationTotal, &sportStr, &activity.Distance, &verticalGain, &activity.Notes, &activity.WasRecommended)
+		var segmentsBytes []byte
+
+		err := rows.Scan(&activity.Time, &activity.Duration, &activity.DurationTotal, &sportStr, &activity.Distance, &verticalGain, &activity.Notes, &activity.WasRecommended, &segmentsBytes)
 		if err != nil {
 			return nil, fmt.Errorf("error scanning activity: %v", err)
 		}
+
 		sport, err := SportFromString(sportStr)
 		if err != nil {
 			return nil, fmt.Errorf("error parsing sport: %v", err)
 		}
 		activity.Sport = sport
+
 		if verticalGain.Valid {
 			activity.VerticalGain = int(verticalGain.Int64)
 		}
+
+		if len(segmentsBytes) > 0 {
+			var segments []Segment
+			err = json.Unmarshal(segmentsBytes, &segments)
+			if err != nil {
+				return nil, fmt.Errorf("error unmarshalling segments: %v", err)
+			}
+			activity.Segments = segments
+		}
+
 		activities = append(activities, activity)
 	}
 
@@ -191,7 +221,8 @@ func Init() (*sql.DB, error) {
 		distance INTEGER NOT NULL,
 		vertical_gain INTEGER,
 		notes TEXT,
-		was_recommended BOOLEAN NOT NULL DEFAULT FALSE
+		was_recommended BOOLEAN NOT NULL DEFAULT FALSE,
+		segments TEXT
 	)`)
 	if err != nil {
 		return nil, fmt.Errorf("error creating activities table: %v", err)
@@ -205,7 +236,13 @@ func InsertActivity(db *sql.DB, activity activity) error {
 	if verticalGain == 0 {
 		verticalGain = sql.NullInt64{Valid: false}.Int64
 	}
-	_, err := db.Exec(`INSERT INTO activities (timestamp, duration, duration_total, sport, distance, vertical_gain, notes, was_recommended) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-		activity.a.Time.Unix(), activity.a.Duration, activity.a.DurationTotal, activity.a.Sport.String(), activity.a.Distance, verticalGain, activity.a.Notes, activity.a.WasRecommended)
+
+	segments, err := json.Marshal(activity.a.Segments)
+	if err != nil {
+		return fmt.Errorf("error marshalling segments: %v", err)
+	}
+
+	_, err = db.Exec(`INSERT INTO activities (timestamp, duration, duration_total, sport, distance, vertical_gain, notes, was_recommended, segments) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		activity.a.Time.Unix(), activity.a.Duration, activity.a.DurationTotal, activity.a.Sport.String(), activity.a.Distance, verticalGain, activity.a.Notes, activity.a.WasRecommended, segments)
 	return err
 }
