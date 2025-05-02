@@ -51,41 +51,11 @@ type ActivityUnsafe struct {
 	Duration       int       `json:"duration"`
 	DurationTotal  int       `json:"duration_total,omitempty"`
 	Distance       int       `json:"distance"`
-	Sport          Sport     `json:"-"`
+	Sport          string    `json:"sport"`
 	VerticalGain   int       `json:"vertical_gain"`
 	Notes          string    `json:"notes"`
 	WasRecommended bool      `json:"was_recommended"`
 	Segments       []Segment `json:"segments"`
-}
-
-func (a ActivityUnsafe) MarshalJSON() ([]byte, error) {
-	type Alias ActivityUnsafe
-	return json.Marshal(&struct {
-		Sport string `json:"sport"`
-		*Alias
-	}{
-		Sport: a.Sport.String(),
-		Alias: (*Alias)(&a),
-	})
-}
-
-func (a *ActivityUnsafe) UnmarshalJSON(data []byte) error {
-	type Alias ActivityUnsafe
-	aux := &struct {
-		Sport string `json:"sport"`
-		*Alias
-	}{
-		Alias: (*Alias)(a),
-	}
-	if err := json.Unmarshal(data, &aux); err != nil {
-		return err
-	}
-	sport, err := SportFromString(aux.Sport)
-	if err != nil {
-		return err
-	}
-	a.Sport = sport
-	return nil
 }
 
 func formatSegments(segments []Segment) string {
@@ -110,7 +80,8 @@ func (a *ActivityUnsafe) Show() string {
 }
 
 type activity struct {
-	a ActivityUnsafe
+	a     ActivityUnsafe
+	sport Sport
 }
 
 func (a ActivityUnsafe) ToActivity() (activity, error) {
@@ -118,8 +89,10 @@ func (a ActivityUnsafe) ToActivity() (activity, error) {
 		a.DurationTotal = a.Duration
 	}
 
-	activity := activity{a}
-	var err error = nil
+	sport, err := SportFromString(a.Sport)
+	if err != nil {
+		return activity{}, err
+	}
 
 	if a.Duration <= 0 {
 		err = fmt.Errorf("duration must be positive")
@@ -129,15 +102,11 @@ func (a ActivityUnsafe) ToActivity() (activity, error) {
 		err = fmt.Errorf("distance must be positive")
 	}
 
-	if a.Sport < Running || a.Sport > Swimming {
-		err = fmt.Errorf("invalid sport")
-	}
-
 	if a.VerticalGain < 0 {
 		err = fmt.Errorf("verticalGain must be non-negative")
 	}
 
-	return activity, err
+	return activity{a: a, sport: sport}, err
 }
 
 func LastActivities(db *sql.DB, limit int) ([]ActivityUnsafe, error) {
@@ -156,21 +125,14 @@ func LastActivities(db *sql.DB, limit int) ([]ActivityUnsafe, error) {
 
 	activities := []ActivityUnsafe{}
 	for rows.Next() {
-		var sportStr string
 		var activity ActivityUnsafe
 		var verticalGain sql.NullInt64
 		var segmentsBytes []byte
 
-		err := rows.Scan(&activity.Time, &activity.Duration, &activity.DurationTotal, &sportStr, &activity.Distance, &verticalGain, &activity.Notes, &activity.WasRecommended, &segmentsBytes)
+		err := rows.Scan(&activity.Time, &activity.Duration, &activity.DurationTotal, &activity.Sport, &activity.Distance, &verticalGain, &activity.Notes, &activity.WasRecommended, &segmentsBytes)
 		if err != nil {
 			return nil, fmt.Errorf("error scanning activity: %v", err)
 		}
-
-		sport, err := SportFromString(sportStr)
-		if err != nil {
-			return nil, fmt.Errorf("error parsing sport: %v", err)
-		}
-		activity.Sport = sport
 
 		if verticalGain.Valid {
 			activity.VerticalGain = int(verticalGain.Int64)
@@ -243,6 +205,6 @@ func InsertActivity(db *sql.DB, activity activity) error {
 	}
 
 	_, err = db.Exec(`INSERT INTO activities (timestamp, duration, duration_total, sport, distance, vertical_gain, notes, was_recommended, segments) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-		activity.a.Time.Unix(), activity.a.Duration, activity.a.DurationTotal, activity.a.Sport.String(), activity.a.Distance, verticalGain, activity.a.Notes, activity.a.WasRecommended, segments)
+		activity.a.Time.Unix(), activity.a.Duration, activity.a.DurationTotal, activity.sport.String(), activity.a.Distance, verticalGain, activity.a.Notes, activity.a.WasRecommended, segments)
 	return err
 }

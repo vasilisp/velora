@@ -14,21 +14,4 @@ need to extract from the input:
   it to meters.
 - **Duration:** Extract the duration of the activity, converting it to seconds.
 
-**Important Notes:**
-
-- Interpret any relative time references according to today’s date.
-- Ensure no additional markup such as Markdown appears in your output.
-- Extracted details should be concise, and in the specified format.
-
-**Output Format:**
-
-(output starts here, do not include this line)
-{
-  "time": "<time>",                    // Activity start in ISO8601 extended format
-  "sport": "<sport>",                  // Type of sport; one of "running", "cycling", "swimming"
-  "distance": <distance>,              // Distance in meters
-  "vertical_gain": <vertical_gain>,    // Vertical gain in meters
-  "duration": <duration>,              // Duration in seconds
-  "was_recommended": <was_recommended>, // Indicate if the activity was recommended (true or false)
-  "notes": "<notes>"                   // General notes including information like area, weather, perceived difficulty, etc.
-}
+Answer only with a function call.

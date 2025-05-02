@@ -11,6 +11,7 @@ import (
 	"github.com/vasilisp/lingograph"
 	"github.com/vasilisp/lingograph/extra"
 	"github.com/vasilisp/lingograph/openai"
+	"github.com/vasilisp/lingograph/store"
 	"github.com/vasilisp/velora/internal/db"
 	"github.com/vasilisp/velora/internal/fitness"
 	"github.com/vasilisp/velora/internal/plan"
@@ -18,38 +19,33 @@ import (
 	"github.com/vasilisp/velora/internal/util"
 )
 
-func readActivity(dbh *sql.DB, response string) {
-	util.Assert(dbh != nil, "readActivity nil dbh")
+func addActivityCallback(dbh *sql.DB) func(activity db.ActivityUnsafe, r store.Store) (bool, error) {
+	return func(activity db.ActivityUnsafe, r store.Store) (bool, error) {
+		activitySafe, err := activity.ToActivity()
+		if err != nil {
+			return false, fmt.Errorf("malformed activity: %v\n", err)
+		}
 
-	var activityUnsafe db.ActivityUnsafe
-	if err := (&activityUnsafe).UnmarshalJSON([]byte(response)); err != nil {
-		util.Fatalf("error unmarshalling activity: %v\n", err)
-	}
+		activityJSON, err := json.MarshalIndent(activity, "", "  ")
+		if err != nil {
+			util.Fatalf("error marshalling activity to JSON: %v\n", err)
+		}
+		fmt.Printf("read activity:\n\n%s\n\n", activityJSON)
+		fmt.Printf("does it look correct? (y/n) ")
 
-	activity, err := activityUnsafe.ToActivity()
-	if err != nil {
-		util.Fatalf("error converting activity: %v\n", err)
-	}
+		var answer string
+		_, err = fmt.Scanln(&answer)
+		if err != nil {
+			util.Fatalf("error reading answer: %v\n", err)
+		}
 
-	fmt.Printf("read activity:\n\n")
-	extra.SanitizeOutput(response, false, os.Stdout)
-	fmt.Printf("\n\ndoes it look correct? (y/n) ")
-
-	var answer string
-	_, err = fmt.Scanln(&answer)
-	if err != nil {
-		util.Fatalf("error reading answer: %v\n", err)
-	}
-
-	switch strings.ToLower(answer) {
-	case "y", "yes":
-		break
-	default:
-		os.Exit(0)
-	}
-
-	if err := db.InsertActivity(dbh, activity); err != nil {
-		util.Fatalf("error inserting activity: %v\n", err)
+		switch strings.ToLower(answer) {
+		case "y", "yes":
+			db.InsertActivity(dbh, activitySafe)
+			return true, nil
+		default:
+			return false, nil
+		}
 	}
 }
 
@@ -66,18 +62,15 @@ func addActivity(dbh *sql.DB, args []string) {
 		util.Fatalf("error getting system prompt: %v\n", err)
 	}
 
-	echo := func(message lingograph.Message) {
-		readActivity(dbh, message.Content)
-		os.Exit(0)
-	}
-
 	client := openai.NewClient(openai.APIKeyFromEnv())
+
 	actor := openai.NewActor(client, openai.GPT41Mini, systemPrompt, nil)
+	openai.AddFunction(actor, "add_activity", "Add an activity to the database", addActivityCallback(dbh))
 
 	pipeline := lingograph.Chain(
 		lingograph.UserPrompt("Today is "+time.Now().Format("2006-01-02"), false),
 		lingograph.UserPrompt(userPrompt, false),
-		actor.Pipeline(echo, false, 3),
+		actor.Pipeline(nil, false, 3),
 	)
 
 	chat := lingograph.NewChat()
