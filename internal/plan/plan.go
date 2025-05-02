@@ -25,11 +25,18 @@ type Planner struct {
 	templates template.Parsed
 }
 
+type PlanSegment struct {
+	Repeat   int `json:"repeat" jsonschema:"description=The number of times to repeat the segment. Can be 1."`
+	Distance int `json:"distance" jsonschema:"description=The planned distance in meters"`
+	Zone     int `json:"zone" jsonschema:"description=The planned zone (1-5)"`
+}
+
 type PlanDay struct {
-	Date     string `json:"date" jsonschema:"description=The date of the planned workout in YYYY-MM-DD format"`
-	Sport    string `json:"sport" jsonschema:"description=The type of sport (running, cycling, swimming)"`
-	Distance int    `json:"distance" jsonschema:"description=The planned distance in meters"`
-	Notes    string `json:"notes" jsonschema:"description=Additional notes and instructions for the workout, in one line"`
+	Date     string        `json:"date" jsonschema:"description=The date of the planned workout in YYYY-MM-DD format"`
+	Sport    string        `json:"sport" jsonschema:"description=The type of sport (running, cycling, swimming)"`
+	Distance int           `json:"distance" jsonschema:"description=The planned distance in meters"`
+	Notes    string        `json:"notes" jsonschema:"description=Additional notes and instructions for the workout, in one line"`
+	Segments []PlanSegment `json:"segments" jsonschema:"description=The segments of the workout"`
 }
 
 type Plan struct {
@@ -42,6 +49,10 @@ func (p Plan) Write(out io.Writer) {
 	for _, day := range p.Days {
 		fmt.Fprintf(out, "  - Date: %s\n    Sport: %s\n    Distance: %d\n    Notes: %s\n",
 			day.Date, day.Sport, day.Distance, day.Notes)
+		for _, segment := range day.Segments {
+			fmt.Fprintf(out, "      - Repeat: %d\n        Distance: %d\n        Zone: %d\n",
+				segment.Repeat, segment.Distance, segment.Zone)
+		}
 	}
 	fmt.Fprintf(out, "\nExplanation: %s\n", p.Explanation)
 }
