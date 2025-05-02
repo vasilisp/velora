@@ -228,14 +228,14 @@ func tuneAI() {
 	}
 }
 
-func planWorkouts(dbh *sql.DB, multiStep bool) {
+func planWorkouts(dbh *sql.DB, singleStep bool) {
 	fitness := fitness.Read(dbh)
 	planner := plan.NewPlanner(openai.APIKeyFromEnv(), fitness)
 
-	if multiStep {
-		planner.MultiStep()
-	} else {
+	if singleStep {
 		planner.SingleStep()
+	} else {
+		planner.MultiStep()
 	}
 }
 
@@ -259,7 +259,7 @@ func Main() {
 	case "recent":
 		showLastActivities(dbh)
 	case "plan":
-		planWorkouts(dbh, len(os.Args) > 2 && os.Args[2] == "--multi-step")
+		planWorkouts(dbh, len(os.Args) > 2 && os.Args[2] == "--single-step")
 	case "ask":
 		askAI(dbh, "ask", strings.Join(os.Args[2:], " "))
 	case "tune":

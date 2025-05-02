@@ -45,6 +45,8 @@ Notes:
 Get personalized training recommendations:
 ```bash
 $ velora plan
+...
+
 Plan:
 
   - Date: 2025-04-14
@@ -61,15 +63,16 @@ Plan:
     Notes: ...
 ```
 
-Get detailed recommendations with multi-step analysis:
-```bash
-$ velora plan --multi-step
-```
-The multi-step mode:
+Planning is a multi-step process that:
 - Analyzes your recent workout history
 - Generates separate training plans for each sport (cycling and running)
 - Combines the recommendations into a cohesive training schedule
 - Provides detailed reasoning for each recommendation
+
+A faster single-step mode is also available:
+```bash
+$ velora plan --single-step
+```
 
 Get insights about your training:
 ```bash
