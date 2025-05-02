@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"strconv"
 	"strings"
 	"time"
 
@@ -19,59 +18,8 @@ import (
 	"github.com/vasilisp/velora/internal/util"
 )
 
-func addActivity(dbh *sql.DB, args []string) {
-	if len(args) < 3 {
-		util.Fatalf("Usage: velora add <sport> <duration> <distance>")
-	}
-
-	sportStr := args[0]
-	sport, err := db.SportFromString(sportStr)
-	if err != nil {
-		util.Fatalf("Invalid sport: %s\n", sportStr)
-	}
-
-	duration, err := strconv.Atoi(args[1])
-	if err != nil {
-		util.Fatalf("invalid duration: %s\n", args[1])
-	}
-
-	distance, err := strconv.Atoi(args[2])
-	if err != nil {
-		util.Fatalf("invalid distance: %s\n", args[2])
-	}
-
-	verticalGain, err := strconv.Atoi(args[3])
-	if err != nil {
-		util.Fatalf("invalid vertical gain: %s\n", args[3])
-	}
-
-	notes := ""
-	if len(args) > 4 {
-		notes = strings.Join(args[4:], " ")
-	}
-
-	activityUnsafe := db.ActivityUnsafe{
-		Time:          time.Now(),
-		Duration:      duration,
-		DurationTotal: duration,
-		Distance:      distance,
-		Sport:         sport,
-		VerticalGain:  verticalGain,
-		Notes:         notes,
-	}
-
-	activity, err := activityUnsafe.ToActivity()
-	if err != nil {
-		util.Fatalf("error creating activity: %v\n", err)
-	}
-
-	if err := db.InsertActivity(dbh, activity); err != nil {
-		util.Fatalf("error inserting activity: %v\n", err)
-	}
-}
-
-func readActivityAI(dbh *sql.DB, response string) {
-	util.Assert(dbh != nil, "readActivityAI nil dbh")
+func readActivity(dbh *sql.DB, response string) {
+	util.Assert(dbh != nil, "readActivity nil dbh")
 
 	var activityUnsafe db.ActivityUnsafe
 	if err := (&activityUnsafe).UnmarshalJSON([]byte(response)); err != nil {
@@ -105,9 +53,9 @@ func readActivityAI(dbh *sql.DB, response string) {
 	}
 }
 
-func addActivityAI(dbh *sql.DB, args []string) {
-	util.Assert(dbh != nil, "addActivityAI nil dbh")
-	util.Assert(len(args) == 1, "Usage: velora addai <description>")
+func addActivity(dbh *sql.DB, args []string) {
+	util.Assert(dbh != nil, "addActivity nil dbh")
+	util.Assert(len(args) == 1, "Usage: velora add <description>")
 
 	templates := template.MakeParsed([]string{"header", "add"})
 
@@ -119,7 +67,7 @@ func addActivityAI(dbh *sql.DB, args []string) {
 	}
 
 	echo := func(message lingograph.Message) {
-		readActivityAI(dbh, message.Content)
+		readActivity(dbh, message.Content)
 		os.Exit(0)
 	}
 
@@ -254,8 +202,6 @@ func Main() {
 	switch os.Args[1] {
 	case "add":
 		addActivity(dbh, os.Args[2:])
-	case "addai":
-		addActivityAI(dbh, os.Args[2:])
 	case "recent":
 		showLastActivities(dbh)
 	case "plan":
