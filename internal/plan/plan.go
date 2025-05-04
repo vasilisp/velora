@@ -281,7 +281,7 @@ func (p Planner) MultiStep(interactive bool) {
 
 	temperature := moreDeterministic
 
-	actorSingleSport := openai.NewActor(p.client, openai.GPT41Mini, systemPrompt, &temperature)
+	actor := openai.NewActor(p.client, openai.GPT41, systemPrompt, &temperature)
 
 	fitnessPrompt := lingograph.UserPrompt(userPromptFitness, false)
 
@@ -290,7 +290,7 @@ func (p Planner) MultiStep(interactive bool) {
 		parallelTasks = append(parallelTasks, lingograph.Chain(
 			fitnessPrompt,
 			lingograph.UserPrompt(data.UserPrompt, false),
-			actorSingleSport.Pipeline(
+			actor.Pipeline(
 				extra.Echoln(os.Stderr, fmt.Sprintf("%s Draft Plan\n\n", util.Capitalize(sport.String()))),
 				false,
 				3,
@@ -298,21 +298,20 @@ func (p Planner) MultiStep(interactive bool) {
 		))
 	}
 
-	actorStrong := openai.NewActor(p.client, openai.GPT41, systemPrompt, &temperature)
 	actorOutputPlan := actorOutputPlan(p.client, openai.GPT41Nano, systemPromptSummarize)
 
 	pipeline := lingograph.Chain(
 		lingograph.Parallel(parallelTasks...),
 		fitnessPrompt,
 		lingograph.UserPrompt(p.userPromptCombine(), false),
-		actorStrong.Pipeline(extra.Echoln(os.Stderr, "Final Plan\n\n"), !interactive, 3),
+		actor.Pipeline(extra.Echoln(os.Stderr, "Final Plan\n\n"), !interactive, 3),
 		actorOutputPlan.Pipeline(nil, false, 3),
 	)
 
 	chat := lingograph.NewChat()
 
 	if interactive {
-		pipeline = lingograph.Chain(pipeline, InteractivePipeline(actorStrong.LingographActor()))
+		pipeline = lingograph.Chain(pipeline, InteractivePipeline(actor.LingographActor()))
 	}
 
 	err := pipeline.Execute(chat)
