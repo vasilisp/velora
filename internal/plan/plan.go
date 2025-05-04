@@ -278,7 +278,7 @@ func (p Planner) MultiStep() {
 			lingograph.UserPrompt(data.UserPrompt, false),
 			actorSingleSport.Pipeline(
 				extra.Echoln(os.Stderr, fmt.Sprintf("%s Draft Plan\n\n", util.Capitalize(sport.String()))),
-				true,
+				false,
 				3,
 			),
 		))
