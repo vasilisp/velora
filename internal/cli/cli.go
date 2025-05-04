@@ -108,12 +108,13 @@ func fitnessData(dbh *sql.DB) (string, error) {
 	return string(fitnessBytes), nil
 }
 
-func askAI(dbh *sql.DB, mode string, userPrompt string) {
+func askAI(dbh *sql.DB, userPrompt string, interactive bool) {
 	util.Assert(dbh != nil, "askAI nil dbh")
+	util.Assert(userPrompt != "" || interactive, "askAI empty userPrompt and interactive is false")
 
 	templates := template.MakeParsed([]string{"header", "ask", "spec_input"})
 
-	systemPrompt, err := templates.Execute(mode, nil)
+	systemPrompt, err := templates.Execute("ask", nil)
 	if err != nil {
 		util.Fatalf("error getting system prompt: %v\n", err)
 	}
@@ -128,9 +129,15 @@ func askAI(dbh *sql.DB, mode string, userPrompt string) {
 
 	pipeline := lingograph.Chain(
 		lingograph.UserPrompt(fitnessData, false),
-		lingograph.UserPrompt(userPrompt, false),
-		actor.Pipeline(extra.Echoln(os.Stdout, ""), false, 3),
 	)
+
+	if userPrompt != "" {
+		pipeline = lingograph.Chain(pipeline, actor.Pipeline(extra.Echoln(os.Stdout, ""), !interactive, 3))
+	}
+
+	if interactive {
+		pipeline = lingograph.Chain(pipeline, plan.InteractivePipeline(actor.LingographActor()))
+	}
 
 	chat := lingograph.NewChat()
 
@@ -169,14 +176,14 @@ func tuneAI() {
 	}
 }
 
-func planWorkouts(dbh *sql.DB, singleStep bool) {
+func planWorkouts(dbh *sql.DB, singleStep bool, interactive bool) {
 	fitness := fitness.Read(dbh)
 	planner := plan.NewPlanner(openai.APIKeyFromEnv(), fitness)
 
 	if singleStep {
-		planner.SingleStep()
+		planner.SingleStep(interactive)
 	} else {
-		planner.MultiStep()
+		planner.MultiStep(interactive)
 	}
 }
 
@@ -198,9 +205,35 @@ func Main() {
 	case "recent":
 		showLastActivities(dbh)
 	case "plan":
-		planWorkouts(dbh, len(os.Args) > 2 && os.Args[2] == "--single-step")
+		args := os.Args[2:]
+		singleStep := false
+		interactive := false
+		for _, arg := range args {
+			switch arg {
+			case "--single-step":
+				singleStep = true
+			case "--interactive":
+				interactive = true
+			default:
+				util.Fatalf("unknown plan flag: %s\n", arg)
+			}
+		}
+		planWorkouts(dbh, singleStep, interactive)
 	case "ask":
-		askAI(dbh, "ask", strings.Join(os.Args[2:], " "))
+		interactive := false
+		args := os.Args[2:]
+		if len(os.Args) <= 2 {
+			askAI(dbh, "", true)
+			return
+		}
+		if os.Args[2] == "--interactive" {
+			interactive = true
+			args = os.Args[3:]
+		} else {
+			interactive = false
+			args = os.Args[2:]
+		}
+		askAI(dbh, strings.Join(args, " "), interactive)
 	case "tune":
 		tuneAI()
 	default:

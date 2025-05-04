@@ -236,7 +236,21 @@ func (p Planner) singleSport(sport profile.Sport, userPrompt string) {
 	}
 }
 
-func (p Planner) MultiStep() {
+func InteractivePipeline(actor lingograph.Actor) lingograph.Pipeline {
+	return lingograph.While(
+		func(store.StoreRO) bool {
+			print("> ")
+
+			// dummy; EOF will terminate
+			return true
+		},
+		lingograph.Chain(
+			extra.Stdin().Pipeline(nil, false, 0),
+			actor.Pipeline(extra.Echoln(os.Stdout, ""), false, 1),
+		),
+	)
+}
+func (p Planner) MultiStep(interactive bool) {
 	sportMap := make(map[profile.Sport]*sportData)
 
 	for _, sport := range p.fitness.Profile.AllSports() {
@@ -284,18 +298,22 @@ func (p Planner) MultiStep() {
 		))
 	}
 
-	actorCombine := openai.NewActor(p.client, openai.GPT41, systemPrompt, &temperature)
+	actorStrong := openai.NewActor(p.client, openai.GPT41, systemPrompt, &temperature)
 	actorOutputPlan := actorOutputPlan(p.client, openai.GPT41Nano, systemPromptSummarize)
 
 	pipeline := lingograph.Chain(
 		lingograph.Parallel(parallelTasks...),
 		fitnessPrompt,
 		lingograph.UserPrompt(p.userPromptCombine(), false),
-		actorCombine.Pipeline(extra.Echoln(os.Stderr, "Final Plan\n\n"), true, 3),
+		actorStrong.Pipeline(extra.Echoln(os.Stderr, "Final Plan\n\n"), !interactive, 3),
 		actorOutputPlan.Pipeline(nil, false, 3),
 	)
 
 	chat := lingograph.NewChat()
+
+	if interactive {
+		pipeline = lingograph.Chain(pipeline, InteractivePipeline(actorStrong.LingographActor()))
+	}
 
 	err := pipeline.Execute(chat)
 
@@ -304,7 +322,7 @@ func (p Planner) MultiStep() {
 	}
 }
 
-func (p Planner) SingleStep() {
+func (p Planner) SingleStep(interactive bool) {
 	systemPrompt, err := p.templates.Execute("plan_single_step", p.templateMultiSportArgs(false))
 	if err != nil {
 		util.Fatalf("error getting system prompt: %v\n", err)
@@ -317,10 +335,17 @@ func (p Planner) SingleStep() {
 		actor.Pipeline(nil, false, 3),
 	)
 
+	if interactive {
+		actorLoop := openai.NewActor(p.client, openai.GPT41, systemPrompt, nil)
+		pipelineLoop := InteractivePipeline(actorLoop.LingographActor())
+		pipeline = lingograph.Chain(pipeline, pipelineLoop)
+	}
+
 	chat := lingograph.NewChat()
 
 	err = pipeline.Execute(chat)
 	if err != nil {
 		util.Fatalf("error getting plan: %v\n", err)
 	}
+
 }
