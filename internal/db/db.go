@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
@@ -58,25 +59,27 @@ type ActivityUnsafe struct {
 	Segments       []Segment `json:"segments"`
 }
 
-func formatSegments(segments []Segment) string {
-	formatted := ""
-	for _, segment := range segments {
-		formatted += fmt.Sprintf("  - Repeat: %d, Distance: %d, Zone: %d\n", segment.Repeat, segment.Distance, segment.Zone)
+func outputSegmentsTo(w io.Writer, segments []Segment) {
+	for i, segment := range segments {
+		if i > 0 {
+			fmt.Fprint(w, ", ")
+		}
+		fmt.Fprintf(w, "  - Repeat: %d, Distance: %d, Zone: %d\n", segment.Repeat, segment.Distance, segment.Zone)
 	}
-	return formatted
 }
 
-func (a *ActivityUnsafe) Show() string {
-	util.Assert(a != nil, "Show nil activity")
+func (a *ActivityUnsafe) OutputTo(w io.Writer) {
+	util.Assert(a != nil, "OutputTo nil activity")
 
-	return fmt.Sprintf("Date: %s\nSport: %s\nTime: %s\nDistance: %s\nVertical Gain: %dm\nNotes: %s\nSegments: %v",
+	fmt.Fprintf(w, "Date: %s\nSport: %s\nTime: %s\nDistance: %s\nVertical Gain: %dm\nNotes: %s\n",
 		a.Time.Format("Jan 2, 15:04"),
 		a.Sport,
 		util.FormatDuration(a.Duration),
 		util.FormatDistance(a.Distance),
 		a.VerticalGain,
 		extra.SanitizeOutputString(a.Notes, true),
-		formatSegments(a.Segments))
+	)
+	outputSegmentsTo(w, a.Segments)
 }
 
 type activity struct {

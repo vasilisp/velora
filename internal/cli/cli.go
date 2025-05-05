@@ -88,7 +88,7 @@ func showLastActivities(dbh *sql.DB) {
 	}
 
 	for i, activity := range activities {
-		fmt.Println(activity.Show())
+		activity.OutputTo(os.Stdout)
 		if i < len(activities)-1 {
 			fmt.Println()
 		}
