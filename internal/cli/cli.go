@@ -147,35 +147,6 @@ func askAI(dbh *sql.DB, userPrompt string, interactive bool) {
 	}
 }
 
-func tuneAI() {
-	templates := template.MakeParsed([]string{"header", "spec_input", "spec_output", "tune"})
-
-	userPrompt, err := templates.Execute("tune", nil)
-	if err != nil {
-		util.Fatalf("error getting user prompt: %v\n", err)
-	}
-
-	systemPrompt, err := templates.Execute("tune", nil)
-	if err != nil {
-		util.Fatalf("error getting system prompt: %v\n", err)
-	}
-
-	client := openai.NewClient(openai.APIKeyFromEnv())
-	actor := openai.NewActor(client, openai.GPT41, systemPrompt, nil)
-
-	pipeline := lingograph.Chain(
-		lingograph.UserPrompt(userPrompt, false),
-		actor.Pipeline(extra.Echoln(os.Stdout, ""), false, 3),
-	)
-
-	chat := lingograph.NewChat()
-
-	err = pipeline.Execute(chat)
-	if err != nil {
-		util.Fatalf("error getting workout recommendation: %v\n", err)
-	}
-}
-
 func planWorkouts(dbh *sql.DB, singleStep bool, interactive bool) {
 	fitness := fitness.Read(dbh)
 	planner := plan.NewPlanner(openai.APIKeyFromEnv(), fitness)
@@ -234,8 +205,6 @@ func Main() {
 			args = os.Args[2:]
 		}
 		askAI(dbh, strings.Join(args, " "), interactive)
-	case "tune":
-		tuneAI()
 	default:
 		util.Fatalf("unknown command\n")
 	}
