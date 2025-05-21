@@ -67,8 +67,9 @@ func addActivity(dbh *sql.DB, args []string) {
 	actor := openai.NewActor(client, openai.GPT41Mini, systemPrompt, nil)
 	openai.AddFunction(actor, "add_activity", "Add an activity to the database", addActivityCallback(dbh))
 
+	timezone, _ := time.Now().Zone()
 	pipeline := lingograph.Chain(
-		lingograph.UserPrompt("Today is "+time.Now().Format("2006-01-02"), false),
+		lingograph.UserPrompt(fmt.Sprintf("Today is %s\n\n. The user is in the %s timezone.", time.Now().Format("2006-01-02"), timezone), false),
 		lingograph.UserPrompt(userPrompt, false),
 		actor.Pipeline(nil, false, 3),
 	)
