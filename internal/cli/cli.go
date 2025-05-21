@@ -132,7 +132,11 @@ func askAI(dbh *sql.DB, userPrompt string, interactive bool) {
 	)
 
 	if userPrompt != "" {
-		pipeline = lingograph.Chain(pipeline, actor.Pipeline(extra.Echoln(os.Stdout, ""), !interactive, 3))
+		pipeline = lingograph.Chain(
+			pipeline,
+			lingograph.UserPrompt(userPrompt, false),
+			actor.Pipeline(extra.Echoln(os.Stdout, ""), !interactive, 3),
+		)
 	}
 
 	if interactive {
