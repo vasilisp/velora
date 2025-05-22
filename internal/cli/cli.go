@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -152,14 +153,14 @@ func askAI(dbh *sql.DB, userPrompt string, interactive bool) {
 	}
 }
 
-func planWorkouts(dbh *sql.DB, singleStep bool, interactive bool) {
+func planWorkouts(dbh *sql.DB, singleStep bool, interactive bool, numDays int) {
 	fitness := fitness.Read(dbh)
 	planner := plan.NewPlanner(openai.APIKeyFromEnv(), fitness)
 
 	if singleStep {
-		planner.SingleStep(interactive)
+		planner.SingleStep(interactive, numDays)
 	} else {
-		planner.MultiStep(interactive)
+		planner.MultiStep(interactive, numDays)
 	}
 }
 
@@ -184,17 +185,35 @@ func Main() {
 		args := os.Args[2:]
 		singleStep := false
 		interactive := false
-		for _, arg := range args {
+		numDays := 3
+
+		for i := 0; i < len(args); i++ {
+			arg := args[i]
 			switch arg {
 			case "--single-step":
 				singleStep = true
 			case "--interactive":
 				interactive = true
+			case "--num-days":
+				if i+1 >= len(args) {
+					util.Fatalf("--num-days requires a value\n")
+				}
+
+				var err error
+				numDays, err = strconv.Atoi(args[i+1])
+				if err != nil {
+					util.Fatalf("invalid value for --num-days: %v\n", err)
+				}
+
+				if numDays <= 0 {
+					util.Fatalf("--num-days must be positive\n")
+				}
+				i++ // skip the next argument since we've consumed it
 			default:
 				util.Fatalf("unknown plan flag: %s\n", arg)
 			}
 		}
-		planWorkouts(dbh, singleStep, interactive)
+		planWorkouts(dbh, singleStep, interactive, numDays)
 	case "ask":
 		interactive := false
 		args := os.Args[2:]

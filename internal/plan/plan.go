@@ -77,7 +77,7 @@ type allowedDisallowedDayStrings struct {
 	Disallowed []string
 }
 
-func nextThreeDays(fitness *fitness.Fitness, allowedDays profile.AllowedDays) allowedDisallowedDays {
+func nextNDays(fitness *fitness.Fitness, allowedDays profile.AllowedDays, numDays int) allowedDisallowedDays {
 	today := time.Now()
 	startDate := today
 
@@ -95,7 +95,7 @@ func nextThreeDays(fitness *fitness.Fitness, allowedDays profile.AllowedDays) al
 		}
 	}
 
-	for i := range 3 {
+	for i := range numDays {
 		date := startDate.AddDate(0, 0, i)
 		if _, ok := allowedDays[date.Weekday()]; ok {
 			days.Allowed = append(days.Allowed, date)
@@ -115,13 +115,14 @@ func FormatDates(dates []time.Time) []string {
 	return formattedDates
 }
 
-func (p Planner) userPromptOfSport(sport profile.Sport) (string, allowedDisallowedDays) {
-	days := nextThreeDays(p.fitness, p.fitness.Profile.AllowedDaysOfSport(sport))
+func (p Planner) userPromptOfSport(sport profile.Sport, numDays int) (string, allowedDisallowedDays) {
+	days := nextNDays(p.fitness, p.fitness.Profile.AllowedDaysOfSport(sport), numDays)
 
 	m := map[string]any{
 		"allowed":    FormatDates(days.Allowed),
 		"disallowed": FormatDates(days.Disallowed),
 		"sport":      sport.String(),
+		"numDays":    numDays,
 	}
 
 	if len(days.Allowed) == 0 {
@@ -155,7 +156,7 @@ func (p Planner) templateMultiSportArgs(filterUnavailable bool) map[string]any {
 	days := make(map[string]allowedDisallowedDayStrings)
 
 	for _, sport := range p.fitness.Profile.AllSports() {
-		allowedDisallowedDays := nextThreeDays(p.fitness, p.fitness.Profile.AllowedDaysOfSport(sport))
+		allowedDisallowedDays := nextNDays(p.fitness, p.fitness.Profile.AllowedDaysOfSport(sport), 3)
 
 		if filterUnavailable && len(allowedDisallowedDays.Allowed) == 0 {
 			continue
@@ -176,8 +177,11 @@ func (p Planner) templateMultiSportArgs(filterUnavailable bool) map[string]any {
 	}
 }
 
-func (p Planner) userPromptCombine() string {
-	str, err := p.templates.Execute("plan_combine", p.templateMultiSportArgs(true))
+func (p Planner) userPromptCombine(numDays int) string {
+	args := p.templateMultiSportArgs(true)
+	args["numDays"] = numDays
+
+	str, err := p.templates.Execute("plan_combine", args)
 	if err != nil {
 		util.Fatalf("error getting combine user prompt: %v\n", err)
 	}
@@ -250,11 +254,11 @@ func InteractivePipeline(actor lingograph.Actor) lingograph.Pipeline {
 		),
 	)
 }
-func (p Planner) MultiStep(interactive bool) {
+func (p Planner) MultiStep(interactive bool, numDays int) {
 	sportMap := make(map[profile.Sport]*sportData)
 
 	for _, sport := range p.fitness.Profile.AllSports() {
-		userPrompt, days := p.userPromptOfSport(sport)
+		userPrompt, days := p.userPromptOfSport(sport, numDays)
 		if len(days.Allowed) == 0 {
 			continue
 		}
@@ -303,7 +307,7 @@ func (p Planner) MultiStep(interactive bool) {
 	pipeline := lingograph.Chain(
 		lingograph.Parallel(parallelTasks...),
 		fitnessPrompt,
-		lingograph.UserPrompt(p.userPromptCombine(), false),
+		lingograph.UserPrompt(p.userPromptCombine(numDays), false),
 		actor.Pipeline(extra.Echoln(os.Stderr, "Final Plan\n\n"), !interactive, 3),
 		actorOutputPlan.Pipeline(nil, false, 3),
 	)
@@ -321,8 +325,11 @@ func (p Planner) MultiStep(interactive bool) {
 	}
 }
 
-func (p Planner) SingleStep(interactive bool) {
-	systemPrompt, err := p.templates.Execute("plan_single_step", p.templateMultiSportArgs(false))
+func (p Planner) SingleStep(interactive bool, numDays int) {
+	args := p.templateMultiSportArgs(false)
+	args["numDays"] = numDays
+
+	systemPrompt, err := p.templates.Execute("plan_single_step", args)
 	if err != nil {
 		util.Fatalf("error getting system prompt: %v\n", err)
 	}
@@ -346,5 +353,4 @@ func (p Planner) SingleStep(interactive bool) {
 	if err != nil {
 		util.Fatalf("error getting plan: %v\n", err)
 	}
-
 }

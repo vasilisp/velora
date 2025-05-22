@@ -3,7 +3,7 @@
 
 Now I'd like a combined workout plan that balances my goals in all sports.
 
-## 3-Day Combined Plan: {{ "" }}
+## {{.numDays}}-Day Combined Plan: {{ "" }}
 {{- range $index, $sport := .sportsCapitalized}}{{if $index}}, {{end}}{{$sport}}{{end}}
 
 {{ template "sched_constraints_combine" . -}}

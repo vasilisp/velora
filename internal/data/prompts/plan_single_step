@@ -2,11 +2,11 @@
 
 Your current task is as follows:
 
-## Plan Next 3 Days
+## Plan Next {{.numDays}} Days
 
 {{ template "sched_constraints_combine" . -}}
 
-- Use your analysis and the user's preferences to suggest suitable activities for the next 3 days.
+- Use your analysis and the user's preferences to suggest suitable activities for the next {{.numDays}} days.
 - There should be a single sport and a single workout (or rest suggestion) per day; no multi-sport days.
 - Ensure the recommendation promotes a balanced exercise routine across all sports.
 - Balance longer endurance sessions with shorter, more intense sessions.
