@@ -56,7 +56,7 @@ type ActivityUnsafe struct {
 	VerticalGain   int       `json:"vertical_gain"`
 	Notes          string    `json:"notes"`
 	WasRecommended bool      `json:"was_recommended"`
-	Segments       []Segment `json:"segments"`
+	Segments       []Segment `json:"segments" jsonschema:"description=The segments of the activity; should be empty for non-structured activities"`
 }
 
 func outputSegmentsTo(w io.Writer, segments []Segment) {
