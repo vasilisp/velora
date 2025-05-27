@@ -11,6 +11,7 @@ require (
 	github.com/bahlo/generic-list-go v0.2.0 // indirect
 	github.com/buger/jsonparser v1.1.1 // indirect
 	github.com/invopop/jsonschema v0.13.0 // indirect
+	github.com/kr/text v0.2.0 // indirect
 	github.com/mailru/easyjson v0.9.0 // indirect
 	github.com/openai/openai-go v1.1.0 // indirect
 	github.com/tidwall/gjson v1.18.0 // indirect
