@@ -21,7 +21,7 @@ func Read(dbh *sql.DB) *Fitness {
 	startOfWeek := util.BeginningOfWeek(time.Now())
 	startOfLastWeek := startOfWeek.AddDate(0, 0, -7)
 
-	activities, err := db.LastActivities(dbh, 20)
+	activities, err := db.LastActivities(dbh, 60)
 	if err != nil {
 		util.Fatalf("error getting activities: %v\n", err)
 	}
