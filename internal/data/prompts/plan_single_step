@@ -13,6 +13,6 @@ Your current task is as follows:
 - Evaluate if the user's recent activities pose a risk of overtraining.
 - Mix the activities with rest days to ensure proper recovery and prevent injury.
 
-{{ template "spec_input" true }}
+{{ template "spec_input" "first" }}
 
 Only respond with a function call.{{end}}
