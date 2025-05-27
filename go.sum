@@ -12,6 +12,8 @@ github.com/mattn/go-sqlite3 v1.14.28 h1:ThEiQrnbtumT+QMknw63Befp/ce/nUPgBPMlRFEu
 github.com/mattn/go-sqlite3 v1.14.28/go.mod h1:Uh1q+B4BYcTPb+yiD3kU8Ct7aC0hY9fxUwlHK0RXw+Y=
 github.com/openai/openai-go v0.1.0-beta.10 h1:CknhGXe8aXQMRuqg255PFnWzgRY9nEryMxoNIBBM9tU=
 github.com/openai/openai-go v0.1.0-beta.10/go.mod h1:g461MYGXEXBVdV5SaR/5tNzNbSfwTBBefwc+LlDCK0Y=
+github.com/openai/openai-go v1.1.0 h1:daSn+y+3QJUmLV1xfh7B8QtgJYRw1hg3yWxKtQDfROE=
+github.com/openai/openai-go v1.1.0/go.mod h1:g461MYGXEXBVdV5SaR/5tNzNbSfwTBBefwc+LlDCK0Y=
 github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
 github.com/stretchr/testify v1.8.1 h1:w7B6lhMri9wdJUVmEZPGGhZzrYTPvgJArz7wNPgYKsk=
@@ -30,10 +32,14 @@ github.com/vasilisp/lingograph v0.0.0-20250422164127-92f0208d1a66 h1:QteEVDl/a1M
 github.com/vasilisp/lingograph v0.0.0-20250422164127-92f0208d1a66/go.mod h1:wcTfhsQ6peMXkGIMNlwsNGnw/FkTshiF/veAC4ICwX4=
 github.com/vasilisp/lingograph v0.0.0-20250428175428-8eed81f003d7 h1:X37XdihlccJtamApKvCCFl2eHr9XACV8+neo1dcLDcY=
 github.com/vasilisp/lingograph v0.0.0-20250428175428-8eed81f003d7/go.mod h1:wcTfhsQ6peMXkGIMNlwsNGnw/FkTshiF/veAC4ICwX4=
+github.com/vasilisp/lingograph v0.0.0-20250527144847-765012bdfa82 h1:s6eckrHvoogZ5hF/jiZUyt13WZ1LzTaHEa0U4t+c8iM=
+github.com/vasilisp/lingograph v0.0.0-20250527144847-765012bdfa82/go.mod h1:sQPdGMlzzjQCzf/AmhczZ3G8nIF0FKsStRa4IIOs3vg=
 github.com/wk8/go-ordered-map/v2 v2.1.8 h1:5h/BUHu93oj4gIdvHHHGsScSTMijfx5PeYkE/fJgbpc=
 github.com/wk8/go-ordered-map/v2 v2.1.8/go.mod h1:5nJHM5DyteebpVlHnWMV0rPz6Zp7+xBAnxjb1X5vnTw=
 golang.org/x/text v0.24.0 h1:dd5Bzh4yt5KYA8f9CJHCP4FB4D51c2c6JvN37xJJkJ0=
 golang.org/x/text v0.24.0/go.mod h1:L8rBsPeo2pSS+xqN0d5u2ikmjtmoJbDBT1b7nHvFCdU=
+golang.org/x/text v0.25.0 h1:qVyWApTSYLk/drJRO5mDlNYskwQznZmkpV2c8q9zls4=
+golang.org/x/text v0.25.0/go.mod h1:WEdwpYrmk1qmdHvhkSTNPm3app7v4rsT8F2UD6+VHIA=
 gopkg.in/check.v1 v0.0.0-20161208181325-20d25e280405 h1:yhCVgyC4o1eVCa2tZl7eS0r+SDo693bJlVdllGtEeKM=
 gopkg.in/check.v1 v0.0.0-20161208181325-20d25e280405/go.mod h1:Co6ibVJAznAaIkqp8huTwlJQCZ016jof/cbN4VW5Yz0=
 gopkg.in/yaml.v3 v3.0.1 h1:fxVm/GzAzEWqLHuvctI91KS9hhNmmWOoWu0XTYJS7CA=
