@@ -20,11 +20,11 @@ import (
 	"github.com/vasilisp/velora/internal/util"
 )
 
-func addActivityCallback(dbh *sql.DB) func(activity db.ActivityUnsafe, r store.Store) (bool, error) {
-	return func(activity db.ActivityUnsafe, r store.Store) (bool, error) {
+func addActivityCallback(dbh *sql.DB, didAdd store.Var[bool]) func(activity db.ActivityUnsafe, r store.Store) (db.ActivityUnsafe, error) {
+	return func(activity db.ActivityUnsafe, r store.Store) (db.ActivityUnsafe, error) {
 		activitySafe, err := activity.ToActivity()
 		if err != nil {
-			return false, fmt.Errorf("malformed activity: %v\n", err)
+			return activity, fmt.Errorf("malformed activity: %v\n", err)
 		}
 
 		activityJSON, err := json.MarshalIndent(activity, "", "  ")
@@ -43,18 +43,53 @@ func addActivityCallback(dbh *sql.DB) func(activity db.ActivityUnsafe, r store.S
 		switch strings.ToLower(answer) {
 		case "y", "yes":
 			db.InsertActivity(dbh, activitySafe)
-			return true, nil
+			store.Set(r, didAdd, true)
+			return activity, nil
 		default:
-			return false, nil
+			return activity, nil
 		}
 	}
 }
 
-func addActivity(dbh *sql.DB, args []string) {
+func analyzeAddedActivity(dbh *sql.DB, client openai.Client, templates template.Parsed, didAdd store.Var[bool]) lingograph.Pipeline {
+	util.Assert(dbh != nil, "analyzeAddedActivity nil dbh")
+
+	systemPromptComment, err := templates.Execute("header", nil)
+	if err != nil {
+		util.Fatalf("error getting header template: %v\n", err)
+	}
+
+	templateComment, err := templates.Execute("add_comment", nil)
+	if err != nil {
+		util.Fatalf("error getting add_comment template: %v\n", err)
+	}
+
+	actorComment := openai.NewActor(client, openai.GPT41, systemPromptComment, nil)
+
+	fitnessData, err := fitnessData(dbh)
+	if err != nil {
+		util.Fatalf("error getting fitness data: %v\n", err)
+	}
+
+	return lingograph.If(
+		func(r store.StoreRO) bool {
+			didAdd, found := store.GetRO(r, didAdd)
+			return found && didAdd
+		},
+		lingograph.Chain(
+			lingograph.UserPrompt(templateComment, false),
+			lingograph.UserPrompt(fitnessData, false),
+			actorComment.Pipeline(extra.Echoln(os.Stdout, ""), false, 3),
+		),
+		lingograph.UserPrompt("The activity was not added to the database.", false),
+	)
+}
+
+func addActivity(dbh *sql.DB, args []string, analyze bool) {
 	util.Assert(dbh != nil, "addActivity nil dbh")
 	util.Assert(len(args) == 1, "Usage: velora add <description>")
 
-	templates := template.MakeParsed([]string{"header", "add"})
+	templates := template.MakeParsed([]string{"header", "add", "add_comment", "spec_input"})
 
 	userPrompt := strings.Join(args, " ")
 
@@ -65,15 +100,23 @@ func addActivity(dbh *sql.DB, args []string) {
 
 	client := openai.NewClient(openai.APIKeyFromEnv())
 
+	didAdd := store.FreshVar[bool]()
 	actor := openai.NewActor(client, openai.GPT41Mini, systemPrompt, nil)
-	openai.AddFunction(actor, "add_activity", "Add an activity to the database", addActivityCallback(dbh))
+	openai.AddFunction(actor, "add_activity", "Add an activity to the database", addActivityCallback(dbh, didAdd))
 
 	timezone, _ := time.Now().Zone()
 	pipeline := lingograph.Chain(
 		lingograph.UserPrompt(fmt.Sprintf("Today is %s\n\n. The user is in the %s timezone.", time.Now().Format("2006-01-02"), timezone), false),
 		lingograph.UserPrompt(userPrompt, false),
-		actor.Pipeline(nil, false, 3),
+		actor.Pipeline(nil, true, 3),
 	)
+
+	if analyze {
+		pipeline = lingograph.Chain(
+			pipeline,
+			analyzeAddedActivity(dbh, client, templates, didAdd),
+		)
+	}
 
 	chat := lingograph.NewChat()
 
@@ -178,7 +221,7 @@ func Main() {
 
 	switch os.Args[1] {
 	case "add":
-		addActivity(dbh, os.Args[2:])
+		addActivity(dbh, os.Args[2:], true)
 	case "recent":
 		showLastActivities(dbh)
 	case "plan":

@@ -1,0 +1,11 @@
+{{define "add_comment"}}Evaluate the completed activity in one concise
+paragraph. Explain how it contributes to or hinders my short- and long-term
+fitness goals. Be objective and critical: highlight any inefficiencies,
+misalignments, or missed opportunities. Focus on whether the activity was
+productive, and if not, suggest specific improvements or alternatives.
+
+For the evaluation, take into account my fitness data as described below.
+
+{{ template "spec_input" "next" }}
+
+{{end}}
