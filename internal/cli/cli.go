@@ -185,7 +185,7 @@ func askAI(dbh *sql.DB, userPrompt string, interactive bool) {
 	}
 
 	if interactive {
-		pipeline = lingograph.Chain(pipeline, plan.InteractivePipeline(actor.LingographActor()))
+		pipeline = lingograph.Chain(pipeline, plan.InteractivePipeline(actor))
 	}
 
 	chat := lingograph.NewChat()

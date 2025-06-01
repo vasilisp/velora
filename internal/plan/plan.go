@@ -315,7 +315,7 @@ func (p Planner) MultiStep(interactive bool, numDays int) {
 	chat := lingograph.NewChat()
 
 	if interactive {
-		pipeline = lingograph.Chain(pipeline, InteractivePipeline(actor.LingographActor()))
+		pipeline = lingograph.Chain(pipeline, InteractivePipeline(actor))
 	}
 
 	err := pipeline.Execute(chat)
@@ -343,7 +343,7 @@ func (p Planner) SingleStep(interactive bool, numDays int) {
 
 	if interactive {
 		actorLoop := openai.NewActor(p.client, openai.GPT41, systemPrompt, nil)
-		pipelineLoop := InteractivePipeline(actorLoop.LingographActor())
+		pipelineLoop := InteractivePipeline(actorLoop)
 		pipeline = lingograph.Chain(pipeline, pipelineLoop)
 	}
 
