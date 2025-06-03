@@ -2,7 +2,6 @@ package profile
 
 import (
 	"encoding/json"
-	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -11,7 +10,7 @@ import (
 	"github.com/vasilisp/velora/internal/util"
 )
 
-type AllowedDays map[time.Weekday]struct{}
+type AllowedDays map[util.Weekday]struct{}
 
 type Sport uint8
 
@@ -51,30 +50,14 @@ func (d *AllowedDays) UnmarshalJSON(data []byte) error {
 		return err
 	}
 
-	*d = make(map[time.Weekday]struct{})
+	*d = make(map[util.Weekday]struct{})
 	for _, dayStr := range days {
-		var day time.Weekday
-		switch dayStr {
-		case "Monday":
-			day = time.Monday
-		case "Tuesday":
-			day = time.Tuesday
-		case "Wednesday":
-			day = time.Wednesday
-		case "Thursday":
-			day = time.Thursday
-		case "Friday":
-			day = time.Friday
-		case "Saturday":
-			day = time.Saturday
-		case "Sunday":
-			day = time.Sunday
-		default:
-			return fmt.Errorf("invalid day: %s", dayStr)
+		day, err := util.ParseWeekday(dayStr)
+		if err != nil {
+			return err
 		}
 		(*d)[day] = struct{}{}
 	}
-
 	return nil
 }
 

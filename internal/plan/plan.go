@@ -97,7 +97,7 @@ func nextNDays(fitness *fitness.Fitness, allowedDays profile.AllowedDays, numDay
 
 	for i := range numDays {
 		date := startDate.AddDate(0, 0, i)
-		if _, ok := allowedDays[date.Weekday()]; ok {
+		if _, ok := allowedDays[util.Weekday(date.Weekday())]; ok {
 			days.Allowed = append(days.Allowed, date)
 		} else {
 			days.Disallowed = append(days.Disallowed, date)

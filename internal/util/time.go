@@ -1,18 +1,64 @@
 package util
 
 import (
+	"encoding/json"
 	"fmt"
 	"time"
 )
 
-var AllDays = []time.Weekday{
-	time.Monday,
-	time.Tuesday,
-	time.Wednesday,
-	time.Thursday,
-	time.Friday,
-	time.Saturday,
-	time.Sunday,
+type Weekday time.Weekday
+
+const (
+	Monday    Weekday = Weekday(time.Monday)
+	Tuesday   Weekday = Weekday(time.Tuesday)
+	Wednesday Weekday = Weekday(time.Wednesday)
+	Thursday  Weekday = Weekday(time.Thursday)
+	Friday    Weekday = Weekday(time.Friday)
+	Saturday  Weekday = Weekday(time.Saturday)
+	Sunday    Weekday = Weekday(time.Sunday)
+)
+
+func ParseWeekday(s string) (Weekday, error) {
+	for i := time.Sunday; i <= time.Saturday; i++ {
+		if i.String() == s {
+			return Weekday(i), nil
+		}
+	}
+
+	return 0, fmt.Errorf("invalid weekday: %q", s)
+}
+
+func (d Weekday) MarshalJSON() ([]byte, error) {
+	return json.Marshal(time.Weekday(d).String())
+}
+
+func (d *Weekday) UnmarshalJSON(data []byte) error {
+	var s string
+	if err := json.Unmarshal(data, &s); err != nil {
+		return err
+	}
+
+	day, err := ParseWeekday(s)
+	if err != nil {
+		return err
+	}
+	*d = day
+
+	return nil
+}
+
+func (d Weekday) String() string {
+	return time.Weekday(d).String()
+}
+
+var AllDays = []Weekday{
+	Monday,
+	Tuesday,
+	Wednesday,
+	Thursday,
+	Friday,
+	Saturday,
+	Sunday,
 }
 
 func FormatDuration(seconds int) string {
