@@ -79,7 +79,7 @@ func (d AllowedDays) String() string {
 	return strings.Join(days, ", ")
 }
 
-type SportConstraints struct {
+type SportPreferences struct {
 	TargetWeeklyDistance uint        `json:"target_weekly_distance"`
 	TargetDistance       uint        `json:"target_distance"`
 	AllowedDays          AllowedDays `json:"allowed_days"`
@@ -87,8 +87,8 @@ type SportConstraints struct {
 	TargetDistanceDate   time.Time   `json:"target_distance_date,omitempty"`
 }
 
-func (sc SportConstraints) MarshalJSON() ([]byte, error) {
-	type Alias SportConstraints
+func (sc SportPreferences) MarshalJSON() ([]byte, error) {
+	type Alias SportPreferences
 
 	if sc.TargetDistanceDate.IsZero() {
 		return json.Marshal(&struct {
@@ -109,8 +109,8 @@ func (sc SportConstraints) MarshalJSON() ([]byte, error) {
 	})
 }
 
-func (sc *SportConstraints) UnmarshalJSON(data []byte) error {
-	type Alias SportConstraints
+func (sc *SportPreferences) UnmarshalJSON(data []byte) error {
+	type Alias SportPreferences
 
 	aux := &struct {
 		*Alias
@@ -134,10 +134,10 @@ func (sc *SportConstraints) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-type SportMap map[Sport]SportConstraints
+type SportMap map[Sport]SportPreferences
 
 func (sm SportMap) MarshalJSON() ([]byte, error) {
-	sportsMap := make(map[string]SportConstraints)
+	sportsMap := make(map[string]SportPreferences)
 	for sport, constraints := range sm {
 		sportsMap[sport.String()] = constraints
 	}
@@ -147,7 +147,7 @@ func (sm SportMap) MarshalJSON() ([]byte, error) {
 
 func (sm *SportMap) UnmarshalJSON(data []byte) error {
 	util.Assert(sm != nil, "sm is nil")
-	stringMap := make(map[string]SportConstraints)
+	stringMap := make(map[string]SportPreferences)
 
 	if err := json.Unmarshal(data, &stringMap); err != nil {
 		return err

@@ -9,9 +9,9 @@ The {{ . }} message you receive will be a JSON object that conforms to the follo
   - `activities_last_week`: A JSON list containing the user's activities last week.
   - `activities_older`: A JSON list containing the user's older activities.
 
-Each key in sports is a string, e.g., "cycling", "runnig".
+Each key in sports is a string, e.g., "cycling", "running".
 
-Each element in `sports` is a **SportConstraints** object with:
+Each element in `sports` is a **SportPreferences** object with:
 
 - `target_weekly_distance`: Total weekly training distance goal (unsigned integer in meters). Note that a week starts on Monday and ends on Sunday.
 - `target_distance`: Target distance for a single session (unsigned integer in meters).
