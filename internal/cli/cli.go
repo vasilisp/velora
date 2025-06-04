@@ -51,6 +51,23 @@ func addActivityCallback(dbh *sql.DB, didAdd store.Var[bool]) func(activity db.A
 	}
 }
 
+func writeSkeletonCallback(skeleton plan.Skeleton, r store.Store) (bool, error) {
+	skeletonString, err := json.MarshalIndent(skeleton, "", "  ")
+	if err != nil {
+		return false, err
+	}
+
+	fmt.Printf("Skeleton:\n\n%s\n\n", skeletonString)
+	fmt.Printf("Does it look correct? (y/n) ")
+
+	err = plan.WriteSkeleton(&skeleton)
+	if err != nil {
+		return false, err
+	}
+
+	return true, nil
+}
+
 func analyzeAddedActivity(dbh *sql.DB, client openai.Client, templates template.Parsed, didAdd store.Var[bool]) lingograph.Pipeline {
 	util.Assert(dbh != nil, "analyzeAddedActivity nil dbh")
 
@@ -170,7 +187,9 @@ func askAI(dbh *sql.DB, userPrompt string, interactive bool) {
 	}
 
 	client := openai.NewClient(openai.APIKeyFromEnv())
+
 	actor := openai.NewActor(client, openai.GPT41, systemPrompt, nil)
+	openai.AddFunction(actor, "write_skeleton", "Write a skeleton to the database", writeSkeletonCallback)
 
 	pipeline := lingograph.Chain(
 		lingograph.UserPrompt(fitnessData, false),
