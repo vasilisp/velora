@@ -42,9 +42,9 @@ func SportFromString(s string) (Sport, error) {
 }
 
 type Segment struct {
-	Repeat   int `json:"repeat" jsonschema:"description=The number of times to repeat the segment. Can be 1."`
-	Distance int `json:"distance" jsonschema:"description=The planned distance in meters"`
-	Zone     int `json:"zone" jsonschema:"description=The planned zone (1-5)"`
+	Repeat   int `json:"repeat" jsonschema_description:"The number of times to repeat the segment. Can be 1."`
+	Distance int `json:"distance" jsonschema_description:"The planned distance in meters"`
+	Zone     int `json:"zone" jsonschema_description:"The planned zone (1-5)"`
 }
 
 type ActivityUnsafe struct {
@@ -56,7 +56,7 @@ type ActivityUnsafe struct {
 	VerticalGain   int       `json:"vertical_gain"`
 	Notes          string    `json:"notes"`
 	WasRecommended bool      `json:"was_recommended"`
-	Segments       []Segment `json:"segments" jsonschema:"description=The segments of the activity; should be empty for non-structured activities"`
+	Segments       []Segment `json:"segments" jsonschema_description:"The segments of the activity; should be empty for non-structured activities"`
 }
 
 func outputSegmentsTo(w io.Writer, segments []Segment) {

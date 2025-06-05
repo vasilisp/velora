@@ -9,21 +9,21 @@ import (
 )
 
 type SkeletonDay struct {
-	Weekday     string       `json:"weekday" jsonschema:"description=The day of the week (Monday, Tuesday, etc.)"`
-	Sport       string       `json:"sport" jsonschema:"description=The type of sport (running, cycling, swimming)"`
-	DistanceMin int          `json:"distance_min" jsonschema:"description=Minimum suggested distance in meters"`
-	Segments    []db.Segment `json:"segments" jsonschema:"description=The segments of the workout"`
+	Weekday     string       `json:"weekday" jsonschema_description:"The day of the week (Monday, Tuesday, etc.)"`
+	Sport       string       `json:"sport" jsonschema_description:"The type of sport (running, cycling, swimming)"`
+	DistanceMin int          `json:"distance_min" jsonschema_description:"Minimum suggested distance in meters"`
+	Segments    []db.Segment `json:"segments" jsonschema_description:"The segments of the workout"`
 }
 
 type SkeletonConflict struct {
-	Weekday string `json:"weekday" jsonschema:"description=The day of the week (Monday, Tuesday, etc.)"`
-	Sport   string `json:"sport" jsonschema:"description=The type of sport (running, cycling, swimming) not allowed on the specific  day"`
+	Weekday string `json:"weekday" jsonschema_description:"The day of the week (Monday, Tuesday, etc.)"`
+	Sport   string `json:"sport" jsonschema_description:"The type of sport (running, cycling, swimming) not allowed on the specific  day"`
 }
 
 type Skeleton struct {
-	Sports    []string           `json:"sports" jsonschema:"description=The sports that are allowed in the plan (running, cycling, swimming)"`
-	Days      []SkeletonDay      `json:"days" jsonschema:"description=The days of the week and their suggested workouts"`
-	Conflicts []SkeletonConflict `json:"conflicts" jsonschema:"description=The days of the week and the sports that are not allowed on that day"`
+	Sports    []string           `json:"sports" jsonschema_description:"The sports that are allowed in the plan (running, cycling, swimming)"`
+	Days      []SkeletonDay      `json:"days" jsonschema_description:"The days of the week and their suggested workouts"`
+	Conflicts []SkeletonConflict `json:"conflicts" jsonschema_description:"The days of the week and the sports that are not allowed on that day"`
 }
 
 func skeletonPath() string {

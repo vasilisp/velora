@@ -27,16 +27,16 @@ type Planner struct {
 }
 
 type PlanDay struct {
-	Date     string       `json:"date" jsonschema:"description=The date of the planned workout in YYYY-MM-DD format"`
-	Sport    string       `json:"sport" jsonschema:"description=The type of sport (running, cycling, swimming)"`
-	Distance int          `json:"distance" jsonschema:"description=The planned distance in meters"`
-	Notes    string       `json:"notes" jsonschema:"description=Additional notes and instructions for the workout, in one line"`
-	Segments []db.Segment `json:"segments" jsonschema:"description=The segments of the workout"`
+	Date     string       `json:"date" jsonschema_description:"The date of the planned workout in YYYY-MM-DD format"`
+	Sport    string       `json:"sport" jsonschema_description:"The type of sport (running, cycling, swimming)"`
+	Distance int          `json:"distance" jsonschema_description:"The planned distance in meters"`
+	Notes    string       `json:"notes" jsonschema_description:"Additional notes and instructions for the workout, in one line"`
+	Segments []db.Segment `json:"segments" jsonschema_description:"The segments of the workout"`
 }
 
 type Plan struct {
 	Days        []PlanDay `json:"days"`
-	Explanation string    `json:"explanation" jsonschema:"description=A short explanation of the choices made, in one paragraph maximum"`
+	Explanation string    `json:"explanation" jsonschema_description:"A short explanation of the choices made, in one paragraph maximum"`
 }
 
 func (p Plan) Write(out io.Writer) {
