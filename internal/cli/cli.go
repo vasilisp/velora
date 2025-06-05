@@ -33,40 +33,49 @@ func addActivityCallback(dbh *sql.DB, didAdd store.Var[bool]) func(activity db.A
 			util.Fatalf("error marshalling activity to JSON: %v\n", err)
 		}
 		fmt.Printf("read activity:\n\n%s\n\n", activityJSON)
-		fmt.Printf("does it look correct? (y/n) ")
-
-		var answer string
-		_, err = fmt.Scanln(&answer)
-		if err != nil {
-			util.Fatalf("error reading answer: %v\n", err)
-		}
-
-		switch strings.ToLower(answer) {
-		case "y", "yes":
-			db.InsertActivity(dbh, activitySafe)
-			store.Set(r, didAdd, true)
-			return activity, nil
-		default:
+		if !confirm("does it look correct?") {
 			return activity, nil
 		}
+
+		db.InsertActivity(dbh, activitySafe)
+		store.Set(r, didAdd, true)
+		return activity, nil
 	}
 }
 
-func writeSkeletonCallback(skeleton profile.Skeleton, r store.Store) (bool, error) {
+func confirm(prompt string) bool {
+	fmt.Printf("%s (y/n) ", prompt)
+
+	var answer string
+	_, err := fmt.Scanln(&answer)
+	if err != nil {
+		util.Fatalf("error reading answer: %v\n", err)
+	}
+
+	return strings.ToLower(answer) == "y" || strings.ToLower(answer) == "yes"
+}
+
+type writeOutcome struct {
+	DidWrite bool `json:"did_write"`
+}
+
+func writeSkeletonCallback(skeleton profile.Skeleton, r store.Store) (writeOutcome, error) {
 	skeletonString, err := json.MarshalIndent(skeleton, "", "  ")
 	if err != nil {
-		return false, err
+		return writeOutcome{DidWrite: false}, err
 	}
 
 	fmt.Printf("Skeleton:\n\n%s\n\n", skeletonString)
-	fmt.Printf("Does it look correct? (y/n) ")
+	if !confirm("Does it look correct?") {
+		return writeOutcome{DidWrite: false}, nil
+	}
 
 	err = profile.WriteSkeleton(&skeleton)
 	if err != nil {
-		return false, err
+		return writeOutcome{DidWrite: false}, err
 	}
 
-	return true, nil
+	return writeOutcome{DidWrite: true}, nil
 }
 
 func analyzeAddedActivity(dbh *sql.DB, client openai.Client, templates template.Parsed, didAdd store.Var[bool]) lingograph.Pipeline {
