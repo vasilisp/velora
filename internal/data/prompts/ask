@@ -13,6 +13,6 @@ Your current task is as follows:
 
 {{ template "spec_input" . }}
 
-## Third user message: specific question
+## Second user message: specific question
 
 Answer this question based on the data received and your general knowledge.{{end}}
