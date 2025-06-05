@@ -18,6 +18,8 @@ fitness level, training load, and progression patterns.
   respect the skeleton's constraints.
 - If you need to make any changes that diverge from the original skeleton,
   clearly explain the reasons for these changes.
+- When describing or generating a weekly skeleton, always list the days of the
+  week in their natural order, starting with Monday.
 
 ## Training Load Guidelines
 
