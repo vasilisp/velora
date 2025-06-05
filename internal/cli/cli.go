@@ -176,7 +176,12 @@ func askAI(dbh *sql.DB, userPrompt string, interactive bool) {
 
 	templates := template.MakeParsed([]string{"header", "ask", "spec_input"})
 
-	systemPrompt, err := templates.Execute("ask", nil)
+	args := map[string]any{
+		"order":       "first",
+		"json_schema": fitness.JSONSchema(),
+	}
+
+	systemPrompt, err := templates.Execute("ask", args)
 	if err != nil {
 		util.Fatalf("error getting system prompt: %v\n", err)
 	}
