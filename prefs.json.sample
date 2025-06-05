@@ -3,13 +3,11 @@
         "cycling": {
             "target_weekly_distance": 150000,
             "target_distance": 100000,
-            "allowed_days": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"],
             "trains_indoors": false
         },
         "running": {
             "target_weekly_distance": 16000,
             "target_distance": 21000,
-            "allowed_days": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"],
             "trains_indoors": false
         }
     },

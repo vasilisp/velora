@@ -81,7 +81,9 @@ type allowedDisallowedDayStrings struct {
 	Disallowed []string
 }
 
-func nextNDays(fitness *fitness.Fitness, allowedDays profile.AllowedDays, numDays int) allowedDisallowedDays {
+func nextNDays(fitnessData *fitness.Fitness, sport profile.Sport, numDays int) allowedDisallowedDays {
+	skeleton := fitnessData.Skeleton
+	sportStr := sport.String()
 	today := time.Now()
 	startDate := today
 
@@ -91,7 +93,7 @@ func nextNDays(fitness *fitness.Fitness, allowedDays profile.AllowedDays, numDay
 	}
 
 	// Check if there's an activity today
-	for _, activity := range fitness.ActivitiesThisWeek {
+	for _, activity := range fitnessData.ActivitiesThisWeek {
 		if activity.Time.Format("2006-01-02") == today.Format("2006-01-02") {
 			// Activity found today, start planning from tomorrow
 			startDate = today.AddDate(0, 0, 1)
@@ -101,7 +103,16 @@ func nextNDays(fitness *fitness.Fitness, allowedDays profile.AllowedDays, numDay
 
 	for i := range numDays {
 		date := startDate.AddDate(0, 0, i)
-		if _, ok := allowedDays[util.Weekday(date.Weekday())]; ok {
+		weekday := date.Weekday().String()
+		allowed := true
+		for _, conflict := range skeleton.Conflicts {
+			if conflict.Weekday == weekday && conflict.Sport == sportStr {
+				allowed = false
+				break
+			}
+		}
+
+		if allowed {
 			days.Allowed = append(days.Allowed, date)
 		} else {
 			days.Disallowed = append(days.Disallowed, date)
@@ -120,7 +131,7 @@ func FormatDates(dates []time.Time) []string {
 }
 
 func (p Planner) userPromptOfSport(sport profile.Sport, numDays int) (string, allowedDisallowedDays) {
-	days := nextNDays(p.fitness, p.fitness.Profile.AllowedDaysOfSport(sport), numDays)
+	days := nextNDays(p.fitness, sport, numDays)
 
 	m := map[string]any{
 		"allowed":    FormatDates(days.Allowed),
@@ -160,7 +171,7 @@ func (p Planner) templateMultiSportArgs(filterUnavailable bool) map[string]any {
 	days := make(map[string]allowedDisallowedDayStrings)
 
 	for _, sport := range p.fitness.Profile.AllSports() {
-		allowedDisallowedDays := nextNDays(p.fitness, p.fitness.Profile.AllowedDaysOfSport(sport), 3)
+		allowedDisallowedDays := nextNDays(p.fitness, sport, 3)
 
 		if filterUnavailable && len(allowedDisallowedDays.Allowed) == 0 {
 			continue
@@ -258,6 +269,7 @@ func InteractivePipeline(actor lingograph.Actor) lingograph.Pipeline {
 		),
 	)
 }
+
 func (p Planner) MultiStep(interactive bool, numDays int) {
 	sportMap := make(map[profile.Sport]*sportData)
 

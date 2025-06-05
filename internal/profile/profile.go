@@ -4,13 +4,10 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
-	"strings"
 	"time"
 
 	"github.com/vasilisp/velora/internal/util"
 )
-
-type AllowedDays map[util.Weekday]struct{}
 
 type Sport uint8
 
@@ -36,55 +33,11 @@ func ParseSport(s string) Sport {
 	panic("unreachable")
 }
 
-func (d AllowedDays) MarshalJSON() ([]byte, error) {
-	days := make([]string, 0, len(d))
-	for day := range d {
-		days = append(days, day.String())
-	}
-	return json.Marshal(days)
-}
-
-func (d *AllowedDays) UnmarshalJSON(data []byte) error {
-	var days []string
-	if err := json.Unmarshal(data, &days); err != nil {
-		return err
-	}
-
-	*d = make(map[util.Weekday]struct{})
-	for _, dayStr := range days {
-		day, err := util.ParseWeekday(dayStr)
-		if err != nil {
-			return err
-		}
-		(*d)[day] = struct{}{}
-	}
-	return nil
-}
-
-func (d AllowedDays) Complement() AllowedDays {
-	complement := make(AllowedDays)
-	for _, day := range util.AllDays {
-		if _, ok := d[day]; !ok {
-			complement[day] = struct{}{}
-		}
-	}
-	return complement
-}
-
-func (d AllowedDays) String() string {
-	var days []string
-	for day := range d {
-		days = append(days, day.String())
-	}
-	return strings.Join(days, ", ")
-}
-
 type SportPreferences struct {
-	TargetWeeklyDistance uint        `json:"target_weekly_distance"`
-	TargetDistance       uint        `json:"target_distance"`
-	AllowedDays          AllowedDays `json:"allowed_days"`
-	TrainsIndoors        bool        `json:"trains_indoors"`
-	TargetDistanceDate   time.Time   `json:"target_distance_date,omitempty"`
+	TargetWeeklyDistance uint      `json:"target_weekly_distance"`
+	TargetDistance       uint      `json:"target_distance"`
+	TrainsIndoors        bool      `json:"trains_indoors"`
+	TargetDistanceDate   time.Time `json:"target_distance_date,omitempty"`
 }
 
 func (sc SportPreferences) MarshalJSON() ([]byte, error) {
@@ -182,10 +135,6 @@ func Read() Profile {
 	}
 
 	return p
-}
-
-func (p Profile) AllowedDaysOfSport(sport Sport) AllowedDays {
-	return p.Sports[sport].AllowedDays
 }
 
 func (p Profile) AllSports() []Sport {
