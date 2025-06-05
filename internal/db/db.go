@@ -49,13 +49,13 @@ type Segment struct {
 
 type ActivityUnsafe struct {
 	Time           time.Time `json:"time"`
-	Duration       int       `json:"duration"`
-	DurationTotal  int       `json:"duration_total,omitempty"`
-	Distance       int       `json:"distance"`
-	Sport          string    `json:"sport"`
-	VerticalGain   int       `json:"vertical_gain"`
-	Notes          string    `json:"notes"`
-	WasRecommended bool      `json:"was_recommended"`
+	Duration       int       `json:"duration" jsonschema_description:"The duration of the activity in seconds"`
+	DurationTotal  int       `json:"duration_total,omitempty" jsonschema_description:"The total duration of the activity in seconds, including rests"`
+	Distance       int       `json:"distance" jsonschema_description:"The distance of the activity in meters"`
+	Sport          string    `json:"sport" jsonschema_description:"The sport of the activity (running, cycling, or swimming)"`
+	VerticalGain   int       `json:"vertical_gain" jsonschema_description:"The total vertical gain in meters"`
+	Notes          string    `json:"notes" jsonschema_description:"User-provided notes for the activity"`
+	WasRecommended bool      `json:"was_recommended" jsonschema_description:"Whether the activity was recommended by the system"`
 	Segments       []Segment `json:"segments" jsonschema_description:"The segments of the activity; should be empty for non-structured activities"`
 }
 
