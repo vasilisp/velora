@@ -16,6 +16,7 @@ import (
 	"github.com/vasilisp/velora/internal/db"
 	"github.com/vasilisp/velora/internal/fitness"
 	"github.com/vasilisp/velora/internal/plan"
+	"github.com/vasilisp/velora/internal/profile"
 	"github.com/vasilisp/velora/internal/template"
 	"github.com/vasilisp/velora/internal/util"
 )
@@ -51,7 +52,7 @@ func addActivityCallback(dbh *sql.DB, didAdd store.Var[bool]) func(activity db.A
 	}
 }
 
-func writeSkeletonCallback(skeleton plan.Skeleton, r store.Store) (bool, error) {
+func writeSkeletonCallback(skeleton profile.Skeleton, r store.Store) (bool, error) {
 	skeletonString, err := json.MarshalIndent(skeleton, "", "  ")
 	if err != nil {
 		return false, err
@@ -60,7 +61,7 @@ func writeSkeletonCallback(skeleton plan.Skeleton, r store.Store) (bool, error) 
 	fmt.Printf("Skeleton:\n\n%s\n\n", skeletonString)
 	fmt.Printf("Does it look correct? (y/n) ")
 
-	err = plan.WriteSkeleton(&skeleton)
+	err = profile.WriteSkeleton(&skeleton)
 	if err != nil {
 		return false, err
 	}

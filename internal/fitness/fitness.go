@@ -16,10 +16,11 @@ type Fitness struct {
 	ActivitiesThisWeek []db.ActivityUnsafe `json:"activities_this_week"`
 	ActivitiesLastWeek []db.ActivityUnsafe `json:"activities_last_week"`
 	ActivitiesOlder    []db.ActivityUnsafe `json:"activities_older"`
+	Skeleton           profile.Skeleton    `json:"skeleton"`
 }
 
 func Read(dbh *sql.DB) *Fitness {
-	profile := profile.Read()
+	profileData := profile.Read()
 	startOfWeek := util.BeginningOfWeek(time.Now())
 	startOfLastWeek := startOfWeek.AddDate(0, 0, -7)
 
@@ -40,11 +41,18 @@ func Read(dbh *sql.DB) *Fitness {
 		}
 	}
 
+	skeleton, err := profile.ReadSkeleton()
+	if err != nil {
+		// If skeleton doesn't exist or can't be read, use empty skeleton
+		skeleton = &profile.Skeleton{}
+	}
+
 	fitness := Fitness{
-		Profile:            profile,
+		Profile:            profileData,
 		ActivitiesThisWeek: thisWeek,
 		ActivitiesLastWeek: lastWeek,
 		ActivitiesOlder:    older,
+		Skeleton:           *skeleton,
 	}
 
 	return &fitness

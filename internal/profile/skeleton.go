@@ -1,4 +1,4 @@
-package plan
+package profile
 
 import (
 	"encoding/json"
@@ -42,6 +42,14 @@ func WriteSkeleton(skeleton *Skeleton) error {
 func ReadSkeleton() (*Skeleton, error) {
 	jsonBytes, err := os.ReadFile(skeletonPath())
 	if err != nil {
+		if os.IsNotExist(err) {
+			return &Skeleton{
+				Sports:    []string{},
+				Days:      []SkeletonDay{},
+				Conflicts: []SkeletonConflict{},
+			}, nil
+		}
+
 		return nil, err
 	}
 
