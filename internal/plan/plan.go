@@ -59,7 +59,11 @@ func NewPlanner(apiKey string, fitness *fitness.Fitness) Planner {
 }
 
 func (p Planner) systemPrompt() string {
-	systemPromptStr, err := p.templates.Execute("plan_system", nil)
+	context := map[string]any{
+		"order":       "first",
+		"json_schema": fitness.JSONSchema(),
+	}
+	systemPromptStr, err := p.templates.Execute("plan_system", context)
 	if err != nil {
 		util.Fatalf("error getting system prompt: %v\n", err)
 	}
@@ -328,6 +332,8 @@ func (p Planner) MultiStep(interactive bool, numDays int) {
 func (p Planner) SingleStep(interactive bool, numDays int) {
 	args := p.templateMultiSportArgs(false)
 	args["numDays"] = numDays
+	args["order"] = "first"
+	args["json_schema"] = fitness.JSONSchema()
 
 	systemPrompt, err := p.templates.Execute("plan_single_step", args)
 	if err != nil {

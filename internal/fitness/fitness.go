@@ -2,8 +2,10 @@ package fitness
 
 import (
 	"database/sql"
+	"encoding/json"
 	"time"
 
+	"github.com/invopop/jsonschema"
 	"github.com/vasilisp/velora/internal/db"
 	"github.com/vasilisp/velora/internal/profile"
 	"github.com/vasilisp/velora/internal/util"
@@ -46,4 +48,17 @@ func Read(dbh *sql.DB) *Fitness {
 	}
 
 	return &fitness
+}
+
+// JSONSchema returns the JSON schema for the Fitness struct
+func JSONSchema() string {
+	reflector := jsonschema.Reflector{}
+	schema := reflector.Reflect(&Fitness{})
+
+	schemaBytes, err := json.MarshalIndent(schema, "", "  ")
+	if err != nil {
+		util.Fatalf("error marshalling schema: %v\n", err)
+	}
+
+	return string(schemaBytes)
 }

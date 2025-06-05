@@ -1,2 +1,2 @@
 {{define "plan_system"}}{{ template "header" . }}
-{{ template "spec_input" "first" }}{{end}}
+{{ template "spec_input" . }}{{end}}
