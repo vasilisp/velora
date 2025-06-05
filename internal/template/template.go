@@ -8,7 +8,12 @@ import (
 	"github.com/vasilisp/velora/internal/util"
 )
 
-type Parsed struct {
+type Parsed interface {
+	Execute(templateName string, d any) (string, error)
+	Has(name string) bool
+}
+
+type parsed struct {
 	tmpl *template.Template
 }
 
@@ -25,10 +30,10 @@ func MakeParsed(allTemplates []string) Parsed {
 
 	util.Assert(tmpl != nil, "MakeParsed nil template")
 
-	return Parsed{tmpl: tmpl}
+	return &parsed{tmpl: tmpl}
 }
 
-func (p Parsed) Execute(templateName string, d any) (string, error) {
+func (p *parsed) Execute(templateName string, d any) (string, error) {
 	var prompt bytes.Buffer
 
 	if err := p.tmpl.ExecuteTemplate(&prompt, templateName, d); err != nil {
@@ -38,6 +43,6 @@ func (p Parsed) Execute(templateName string, d any) (string, error) {
 	return prompt.String(), nil
 }
 
-func (p Parsed) Has(name string) bool {
+func (p *parsed) Has(name string) bool {
 	return p.tmpl.Lookup(name) != nil
 }
