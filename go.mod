@@ -5,7 +5,7 @@ go 1.24.2
 require (
 	github.com/invopop/jsonschema v0.13.0
 	github.com/mattn/go-sqlite3 v1.14.28
-	github.com/vasilisp/lingograph v0.0.1-alpha.1
+	github.com/vasilisp/lingograph v0.0.1-alpha.2.0.20250619204038-1efb5ee4be46
 )
 
 require (
