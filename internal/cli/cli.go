@@ -91,7 +91,7 @@ func analyzeAddedActivity(dbh *sql.DB, client openai.Client, templates template.
 		util.Fatalf("error getting add_comment template: %v\n", err)
 	}
 
-	actorComment := openai.NewActor(client, openai.GPT41, systemPromptComment, nil)
+	actorComment := openai.NewActor(client, openai.GPT5, systemPromptComment, nil)
 
 	fitnessData, err := fitnessData(dbh)
 	if err != nil {
@@ -128,7 +128,7 @@ func addActivity(dbh *sql.DB, args []string, analyze bool) {
 	client := openai.NewClient(openai.APIKeyFromEnv())
 
 	didAdd := store.FreshVar[bool]()
-	actor := openai.NewActor(client, openai.GPT41Mini, systemPrompt, nil)
+	actor := openai.NewActor(client, openai.GPT5Mini, systemPrompt, nil)
 	openai.AddFunction(actor, "add_activity", "Add an activity to the database", addActivityCallback(dbh, didAdd))
 
 	timezone, _ := time.Now().Zone()
@@ -203,7 +203,7 @@ func askAI(dbh *sql.DB, userPrompt string, interactive bool) {
 
 	client := openai.NewClient(openai.APIKeyFromEnv())
 
-	actor := openai.NewActor(client, openai.GPT41, systemPrompt, nil)
+	actor := openai.NewActor(client, openai.GPT5, systemPrompt, nil)
 	openai.AddFunction(actor, "write_skeleton", "Write a skeleton to the database", writeSkeletonCallback)
 
 	pipeline := lingograph.Chain(

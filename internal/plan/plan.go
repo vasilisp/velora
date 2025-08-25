@@ -18,8 +18,6 @@ import (
 	"github.com/vasilisp/velora/internal/util"
 )
 
-const moreDeterministic = 0.2
-
 type Planner struct {
 	client    openai.Client
 	fitness   *fitness.Fitness
@@ -214,8 +212,7 @@ func userPromptFitness(fitness *fitness.Fitness) string {
 }
 
 func actorOutputPlan(client openai.Client, model openai.ChatModel, systemPrompt string) openai.Actor {
-	temperature := moreDeterministic
-	actor := openai.NewActor(client, model, systemPrompt, &temperature)
+	actor := openai.NewActor(client, model, systemPrompt, nil)
 
 	openai.AddFunction(actor, "output_plan", "Output the plan to the user", func(plan Plan, store store.Store) (string, error) {
 		fmt.Println("")
@@ -233,9 +230,8 @@ Only respond with a function call.
 `
 
 func (p Planner) singleSport(sport profile.Sport, userPrompt string) {
-	temperature := moreDeterministic
-	actor := openai.NewActor(p.client, openai.GPT41, p.systemPrompt(), &temperature)
-	actorOutputPlan := actorOutputPlan(p.client, openai.GPT41Nano, systemPromptSummarize)
+	actor := openai.NewActor(p.client, openai.GPT5, p.systemPrompt(), nil)
+	actorOutputPlan := actorOutputPlan(p.client, openai.GPT5Nano, systemPromptSummarize)
 
 	echo := extra.Echoln(os.Stdout, "")
 
@@ -299,9 +295,7 @@ func (p Planner) MultiStep(interactive bool, numDays int) {
 	systemPrompt := p.systemPrompt()
 	userPromptFitness := userPromptFitness(p.fitness)
 
-	temperature := moreDeterministic
-
-	actor := openai.NewActor(p.client, openai.GPT41, systemPrompt, &temperature)
+	actor := openai.NewActor(p.client, openai.GPT5, systemPrompt, nil)
 
 	fitnessPrompt := lingograph.UserPrompt(userPromptFitness, false)
 
@@ -318,7 +312,7 @@ func (p Planner) MultiStep(interactive bool, numDays int) {
 		))
 	}
 
-	actorOutputPlan := actorOutputPlan(p.client, openai.GPT41Nano, systemPromptSummarize)
+	actorOutputPlan := actorOutputPlan(p.client, openai.GPT5Nano, systemPromptSummarize)
 
 	pipeline := lingograph.Chain(
 		lingograph.Parallel(parallelTasks...),
@@ -352,7 +346,7 @@ func (p Planner) SingleStep(interactive bool, numDays int) {
 		util.Fatalf("error getting system prompt: %v\n", err)
 	}
 
-	actor := actorOutputPlan(p.client, openai.GPT41, systemPrompt)
+	actor := actorOutputPlan(p.client, openai.GPT5, systemPrompt)
 
 	pipeline := lingograph.Chain(
 		lingograph.UserPrompt(userPromptFitness(p.fitness), false),
@@ -360,7 +354,7 @@ func (p Planner) SingleStep(interactive bool, numDays int) {
 	)
 
 	if interactive {
-		actorLoop := openai.NewActor(p.client, openai.GPT41, systemPrompt, nil)
+		actorLoop := openai.NewActor(p.client, openai.GPT5, systemPrompt, nil)
 		pipelineLoop := InteractivePipeline(actorLoop)
 		pipeline = lingograph.Chain(pipeline, pipelineLoop)
 	}
