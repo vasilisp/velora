@@ -255,7 +255,13 @@ func Main() {
 
 	switch os.Args[1] {
 	case "add":
-		addActivity(dbh, os.Args[2:], true)
+		analyze := false
+		args := os.Args[2:]
+		if len(args) > 0 && args[0] == "--analyze" {
+			analyze = true
+			args = args[1:]
+		}
+		addActivity(dbh, args, analyze)
 	case "recent":
 		showLastActivities(dbh)
 	case "plan":
