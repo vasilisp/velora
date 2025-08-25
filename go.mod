@@ -4,8 +4,8 @@ go 1.24.2
 
 require (
 	github.com/invopop/jsonschema v0.13.0
-	github.com/mattn/go-sqlite3 v1.14.28
-	github.com/vasilisp/lingograph v0.0.1-alpha.1
+	github.com/mattn/go-sqlite3 v1.14.32
+	github.com/vasilisp/lingograph v0.0.1-alpha.3
 )
 
 require (
@@ -13,12 +13,12 @@ require (
 	github.com/buger/jsonparser v1.1.1 // indirect
 	github.com/kr/text v0.2.0 // indirect
 	github.com/mailru/easyjson v0.9.0 // indirect
-	github.com/openai/openai-go v1.2.0 // indirect
+	github.com/openai/openai-go v1.12.0 // indirect
 	github.com/tidwall/gjson v1.18.0 // indirect
 	github.com/tidwall/match v1.1.1 // indirect
 	github.com/tidwall/pretty v1.2.1 // indirect
 	github.com/tidwall/sjson v1.2.5 // indirect
 	github.com/wk8/go-ordered-map/v2 v2.1.8 // indirect
-	golang.org/x/text v0.25.0 // indirect
+	golang.org/x/text v0.28.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
